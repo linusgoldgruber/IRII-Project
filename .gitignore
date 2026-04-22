@@ -1,0 +1,11 @@
+.DS_Store
+.venv/
+__pycache__/
+*.pyc
+
+# experiment outputs
+runs/
+data/
+
+# local secrets/config
+*.env
