@@ -16,102 +16,117 @@ source .venv/bin/activate
 python scripts/study_task.py
 ```
 
-Choose mode at startup:
+Choose the mode in the startup dialog:
 - `real`
 - `test`
-- `rg` (research graded eye tracker mode)
+- `rg`
 
-You can also set `main_trials` in the same start dialog.
-- leave blank to use mode defaults (`real=60`, `test` from config, `rg=60`)
-- or enter any positive integer for a custom run length
+You can also set `main_trials` in the same dialog.
+- leave it blank to use the mode default
+- or enter any positive integer up to the 80-image bank for a custom run length
 
-## Current Flow
+## Input
 
-- Practice block: `2` trials
-- Main block:
-  - `real`: `60` trials
-  - `test`: from `N_TRIALS_TEST` in config
-  - `rg`: `60` trials (default)
-- Main trials randomized
-- Manipulation check on ~15% of main trials
-- Breaks after trial 20 and 40 in `real` mode only (minimum 20s)
-- Image phase minimum duration: 10s (normal continue with `SPACE`)
-- Rating input: hold `LEFT/RIGHT` for smooth slider movement, `SPACE` confirms
-- Hidden quit: press `Q` twice within 2s
+All study inputs live under `input/`:
 
-## Hidden Test Shortcuts
+- `input/main/stimuli.csv`
+- `input/main/images/`
+- `input/practice/stimuli.csv`
+- `input/practice/images/`
 
-Only in `test` mode:
-- Double-`F` skips image phase immediately (bypasses 10s minimum)
-- Double-`F` skips break screens
+The main stimulus CSV stores the prepared image-description mappings.
+The practice CSV stays separate but uses the same simple flat layout.
+The prepared main bank is capped at 80 images.
+The loader resolves common raster formats through Pillow, so `jpg`, `png`,
+`ppm`, `bmp`, `tif`, and similar files are all displayable as long as they
+exist in the input folder.
 
-No on-screen indicators are shown for these shortcuts.
+## Output
 
-## Cursor Proxy Logging
+Each run is written to:
 
-- `test` mode: cursor-proxy samples are recorded during image phase
-- `real` mode: cursor-proxy samples are recorded during image phase
-- `rg` mode: cursor-proxy sampling is disabled by design (placeholder for external tracker input)
+```text
+output/participant_<participant>/<YYYY-MM-DD_HH-MM-SS-ms>/
+```
 
-Cursor is hidden during the task.
-Saved cursor rows are resampled to a fixed rate (`CURSOR_TARGET_HZ`, default `60 Hz`) from
-timestamped raw points, so the stored sample count follows duration instead of render-loop FPS.
+That run folder contains:
+- `main_trials.csv`
+- `main_gaze.csv`
+- `practice_trials.csv`
+- `practice_gaze.csv`
+- `main_sequence.csv`
+- `qc.png`
 
-## End-of-Run Screens
+The top-level summary file is:
+- `output/participants_latest.csv`
 
-At successful completion, two `SPACE`-gated end screens are shown:
-1. `Experiment finished` screen (participant can leave)
-2. QC/results screen with:
-   - automatic run-quality summary
-   - automatic validity checklist (pass/warn/fail checks)
-   - generated QC figure path
-   - output file paths
+It contains one row per participant, always keeping only the latest run for that participant. If the same participant runs again, their previous row is replaced.
 
-QC loading starts only after the first screen is acknowledged with `SPACE`.
+## Behavior
 
-The program does not auto-close these screens; it waits for `SPACE`.
+- Practice block: 2 trials
+- Main block: mode-dependent trial count
+- Main trials are randomized from the prepared stimulus bank
+- Descriptions are balanced across `congruent`, `ambiguous`, and `incongruent`
+- The exact trial order is saved in `main_sequence.csv`
+- QC is generated automatically at the end of each run
 
-## Automatic QC Visualization
+## Notes
 
-After each completed run, a QC plot is generated automatically:
-- location: `<main output folder>/qc/<run_id>_qc.png`
-- includes:
-  - image-view time by trial (+ min-time reference line)
-  - rating by trial
-  - cursor sample counts by trial (when available)
+- Hidden quit: press `Q` twice within the quit window
+- In `test` mode, the hidden fast-skip shortcuts are enabled
+- Cursor-proxy sampling is enabled for `real` and `test`, and disabled for `rg`
 
-## Files
+## AOI Setup
 
-Trial configs:
-- main: `stimuli/trials.csv`
-- practice: `stimuli/practice/trials.csv`
+Coarse AOIs for the main image bank can be generated with editable shape masks.
+This is better than fixed grid or Voronoi AOIs for this stimulus set because a
+single `background / rest` AOI can cover all pixels that are not part of a
+foreground shape. For example, a circular central object can be marked with an
+ellipse while the surrounding background remains one AOI instead of being split
+into top-left/top-right regions.
 
-Required columns:
-- `trial_id`
-- `description`
-- `image_file`
+```bash
+source .venv/bin/activate
+python scripts/aoi_tool.py init --k 3 --overwrite
+```
 
-Image folders:
-- main: `images/`
-- practice: `images/practice/`
+This writes:
 
-Outputs:
-- real main trials: `runs/all_runs.csv`
-- real practice trials: `runs/practice/all_runs_practice.csv`
-- test main trials: `runs/test/all_runs_test.csv`
-- test practice trials: `runs/test/practice/all_runs_practice_test.csv`
-- test main gaze samples: `runs/test/gaze_samples_test.csv`
-- test practice gaze samples: `runs/test/practice/gaze_samples_practice_test.csv`
+- `input/main/aois/aoi_shapes.json`: normalized AOI shapes per image
+- `input/main/aois/aois.csv`: one row per image AOI, including shape type,
+  area, and bounding box
+- `input/main/aois/previews/`: overlay images for visual checking
+- `input/main/aois/label_maps/`: grayscale AOI label maps, where pixel values
+  `1..k` identify AOI membership. `1` is the background/rest AOI.
 
-## Tunable Parameters
+To manually adjust AOI shapes:
 
-Use `scripts/study_config.py` as the central place for quick parameter changes.
+```bash
+source .venv/bin/activate
+python scripts/aoi_tool.py edit --k 3
+```
 
-This includes:
-- trial counts (`N_TRIALS_REAL`, `N_TRIALS_TEST`, `N_PRACTICE_TRIALS`)
-- timing and checks (`MIN_IMAGE_VIEW_S`, `CHECK_RATE`, breaks, key windows)
-- sampling (`GAZE_SAMPLE_INTERVAL_S`, `CURSOR_TARGET_HZ`)
-- slider behavior (`RATING_*`)
-- window/display settings
-- QC summary layout (`QC_SUMMARY_LINES`)
-# IRII-Project
+Editor controls:
+
+- Click/drag shape: move it
+- Click/drag corner handle: resize it
+- `E`: draw a new ellipse
+- `R`: draw a new rectangle
+- `Delete` / `Backspace`: delete the selected foreground AOI
+- `Tab`: select the next foreground AOI
+- `2`, `3`, `4`, `5`: reset the current image to that many total AOIs,
+  including background/rest
+- `A`: reset the current image to the default image-oriented AOIs
+- `+` / `-`: grow or shrink the selected AOI
+- Arrow keys: nudge the selected AOI
+- `S`: save current image
+- `N` / `P`: save and move to next / previous image
+- `Q`: save and quit
+
+After editing, regenerate the CSV, previews, and label maps without changing
+saved shapes:
+
+```bash
+python scripts/aoi_tool.py batch --k 3
+```

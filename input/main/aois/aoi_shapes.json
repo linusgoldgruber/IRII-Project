@@ -1,0 +1,2425 @@
+{
+  "images": {
+    "001.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.739744,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.7713,
+          "x": 0.087444,
+          "y": 0.103846
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.311157,
+          "y": 0.267513
+        }
+      ]
+    },
+    "002.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.213333,
+          "id": "AOI1",
+          "kind": "rect",
+          "label": "AOI 1",
+          "locked": false,
+          "w": 1.0,
+          "x": 0.0,
+          "y": 0.0
+        },
+        {
+          "h": 0.181667,
+          "id": "AOI2",
+          "kind": "rect",
+          "label": "AOI 2",
+          "locked": false,
+          "w": 0.995652,
+          "x": 0.004348,
+          "y": 0.213333
+        },
+        {
+          "h": 0.131667,
+          "id": "AOI3",
+          "kind": "rect",
+          "label": "AOI 3",
+          "locked": false,
+          "w": 0.997826,
+          "x": 0.002174,
+          "y": 0.4
+        },
+        {
+          "h": 0.318333,
+          "id": "AOI4",
+          "kind": "rect",
+          "label": "AOI 4",
+          "locked": false,
+          "w": 1.0,
+          "x": 0.0,
+          "y": 0.535
+        }
+      ]
+    },
+    "003.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "004.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "005.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "006.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "007.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "008.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "009.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "010.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "011.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "012.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "013.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "014.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "015.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "016.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "017.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "018.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "019.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "020.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "021.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "022.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "023.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "024.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "025.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "026.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "027.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "028.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "029.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.991111,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.613704,
+          "x": 0.160741,
+          "y": 0.0
+        },
+        {
+          "h": 0.446,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.276167,
+          "x": 0.329509,
+          "y": 0.272556
+        }
+      ]
+    },
+    "030.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "031.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "032.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "033.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "034.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "035.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "036.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "037.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "038.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "039.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "040.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "041.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "042.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "043.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "044.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "045.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "046.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "047.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "048.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "049.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "050.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "051.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "052.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "053.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "054.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "055.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "056.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "057.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "058.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "059.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "060.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "061.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "062.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "063.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "064.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "065.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "066.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "067.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "068.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "069.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "070.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "071.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "072.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "073.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "074.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "075.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "076.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "077.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "078.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "079.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    },
+    "080.jpg": {
+      "aois": [
+        {
+          "id": "BG",
+          "kind": "background",
+          "label": "background / rest",
+          "locked": true
+        },
+        {
+          "h": 0.68,
+          "id": "AOI1",
+          "kind": "ellipse",
+          "label": "main object / figure",
+          "locked": false,
+          "w": 0.64,
+          "x": 0.18,
+          "y": 0.16
+        },
+        {
+          "h": 0.306,
+          "id": "AOI2",
+          "kind": "ellipse",
+          "label": "central detail",
+          "locked": false,
+          "w": 0.288,
+          "x": 0.356,
+          "y": 0.347
+        }
+      ]
+    }
+  },
+  "schema_version": 2
+}

@@ -3,10 +3,14 @@ from __future__ import annotations
 import csv
 import math
 import random
+import re
 import time
-from collections import defaultdict
+from collections import Counter, defaultdict
+from datetime import datetime
 from pathlib import Path
 
+import numpy as np
+from PIL import Image, ImageOps
 from psychopy import core, event, gui, visual
 import study_config as cfg
 
@@ -27,6 +31,14 @@ RATING_DEFAULT = cfg.RATING_DEFAULT
 RATING_SPEED_BASE = cfg.RATING_SPEED_BASE
 RATING_SPEED_ACCEL = cfg.RATING_SPEED_ACCEL
 RATING_SPEED_MAX = cfg.RATING_SPEED_MAX
+MAX_MAIN_STIMULI = cfg.MAX_MAIN_STIMULI
+
+PREPARED_DESCRIPTION_CONDITIONS = ("congruent", "ambiguous", "incongruent")
+PREPARED_METADATA_CONDITION_BY_LABEL = {
+    "congruent": "congruent",
+    "ambiguous": "semi_congruent",
+    "incongruent": "incongruent",
+}
 
 
 class UserAbort(Exception):
@@ -114,6 +126,174 @@ def load_trials(path: Path) -> list[dict[str, str]]:
     return rows
 
 
+def load_prepared_trials(path: Path) -> list[dict[str, str]]:
+    if not path.exists():
+        raise FileNotFoundError(f"Missing prepared stimulus file: {path}")
+
+    with path.open("r", encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        fieldnames = set(reader.fieldnames or [])
+        image_field = "image_file" if "image_file" in fieldnames else "new_filename" if "new_filename" in fieldnames else ""
+        required = {
+            "stimulus_id",
+            "original_filename",
+            "original_relative_path",
+            "original_style_folder",
+            "condition_congruent",
+            "condition_semi_congruent",
+            "condition_incongruent",
+        }
+        missing = required - fieldnames
+        if not image_field:
+            missing = sorted(set(missing) | {"image_file"})
+        else:
+            missing = sorted(missing)
+        if missing:
+            allowed = sorted(required | {"image_file", "new_filename"})
+            raise ValueError(
+                "Prepared stimulus file must include columns "
+                f"{allowed}. Missing: {missing}"
+            )
+
+        rows: list[dict[str, str]] = []
+        for row in reader:
+            stimulus_id = (row.get("stimulus_id") or "").strip()
+            image_file = (row.get(image_field) or "").strip()
+            original_filename = (row.get("original_filename") or "").strip()
+            original_relative_path = (row.get("original_relative_path") or "").strip()
+            original_style_folder = (row.get("original_style_folder") or "").strip()
+            congruent = (row.get("condition_congruent") or "").strip()
+            ambiguous = (row.get("condition_semi_congruent") or "").strip()
+            incongruent = (row.get("condition_incongruent") or "").strip()
+            needs_review = (row.get("needs_human_review") or "").strip().lower()
+
+            if not stimulus_id or not image_file:
+                continue
+            if not (congruent and ambiguous and incongruent):
+                continue
+            if needs_review in {"1", "true", "yes", "y"}:
+                continue
+
+            rows.append(
+                {
+                    "stimulus_id": stimulus_id,
+                    "image_file": image_file,
+                    "original_filename": original_filename,
+                    "original_relative_path": original_relative_path,
+                    "original_style_folder": original_style_folder,
+                    "description_congruent": congruent,
+                    "description_ambiguous": ambiguous,
+                    "description_incongruent": incongruent,
+                }
+            )
+
+    if not rows:
+        raise ValueError(f"No usable prepared stimuli found in: {path}")
+    if len(rows) > MAX_MAIN_STIMULI:
+        raise ValueError(
+            f"Prepared stimulus file contains {len(rows)} usable rows, which exceeds the "
+            f"maximum of {MAX_MAIN_STIMULI}."
+        )
+    return rows
+
+
+def build_condition_pool(n_trials: int) -> list[str]:
+    labels = list(PREPARED_DESCRIPTION_CONDITIONS)
+    base, remainder = divmod(n_trials, len(labels))
+    pool = [label for label in labels for _ in range(base)]
+
+    extras = labels.copy()
+    random.shuffle(extras)
+    pool.extend(extras[:remainder])
+    random.shuffle(pool)
+    return pool
+
+
+def build_prepared_trial_sequence(
+    prepared_trials: list[dict[str, str]],
+    n_trials: int,
+) -> list[dict[str, str]]:
+    if n_trials > len(prepared_trials):
+        raise ValueError(
+            f"Requested {n_trials} main trials, but only {len(prepared_trials)} prepared stimuli are available."
+        )
+    selected_stimuli = random.sample(prepared_trials, n_trials)
+    condition_pool = build_condition_pool(n_trials)
+
+    sequence: list[dict[str, str]] = []
+    for stimulus, condition in zip(selected_stimuli, condition_pool):
+        metadata_condition = PREPARED_METADATA_CONDITION_BY_LABEL[condition]
+        sequence.append(
+            {
+                "stimulus_id": stimulus["stimulus_id"],
+                "trial_id": stimulus["stimulus_id"],
+                "description_condition": condition,
+                "metadata_condition": metadata_condition,
+                "description": stimulus[f"description_{condition}"],
+                "image_file": stimulus["image_file"],
+                "original_filename": stimulus["original_filename"],
+                "original_relative_path": stimulus["original_relative_path"],
+                "original_style_folder": stimulus["original_style_folder"],
+            }
+        )
+    return sequence
+
+
+def sanitize_path_component(value: str, default: str = "unknown") -> str:
+    text = value.strip()
+    text = re.sub(r"[^A-Za-z0-9._-]+", "_", text)
+    text = re.sub(r"_+", "_", text).strip("._-")
+    return text or default
+
+
+def build_run_timestamp(now: datetime | None = None) -> str:
+    current = now or datetime.now()
+    return current.strftime("%Y-%m-%d_%H-%M-%S-%f")[:-3]
+
+
+def build_run_output_layout(
+    project_root: Path,
+    participant: str,
+    run_timestamp: str,
+) -> dict[str, Path | str]:
+    output_root = project_root / "output"
+    participant_slug = sanitize_path_component(participant)
+    participant_dir = output_root / f"participant_{participant_slug}"
+    run_dir = participant_dir / run_timestamp
+    return {
+        "output_root": output_root,
+        "participant_slug": participant_slug,
+        "participant_dir": participant_dir,
+        "run_dir": run_dir,
+        "main_trials_csv": run_dir / "main_trials.csv",
+        "main_gaze_csv": run_dir / "main_gaze.csv",
+        "practice_trials_csv": run_dir / "practice_trials.csv",
+        "practice_gaze_csv": run_dir / "practice_gaze.csv",
+        "main_sequence_csv": run_dir / "main_sequence.csv",
+        "qc_png": run_dir / "qc.png",
+        "participant_index_csv": output_root / "participants_latest.csv",
+    }
+
+
+def upsert_latest_row(
+    csv_path: Path,
+    row: dict[str, str | int | float],
+    fieldnames: list[str],
+    key_field: str,
+) -> None:
+    existing_rows: list[dict[str, str]] = []
+    if csv_path.exists():
+        with csv_path.open("r", encoding="utf-8", newline="") as f:
+            reader = csv.DictReader(f)
+            for existing_row in reader:
+                if existing_row.get(key_field) != str(row.get(key_field, "")):
+                    existing_rows.append({k: v for k, v in existing_row.items() if k is not None})
+
+    existing_rows.append({field: row.get(field, "") for field in fieldnames})
+    existing_rows.sort(key=lambda item: item.get(key_field, ""))
+    write_rows(csv_path, existing_rows, fieldnames)
+
+
 def build_trial_sequence(base_trials: list[dict[str, str]], n_trials: int) -> list[dict[str, str]]:
     pool = base_trials.copy()
     random.shuffle(pool)
@@ -133,30 +313,6 @@ def choose_check_trials(n_trials: int, rate: float) -> set[int]:
     return set(random.sample(range(1, n_trials + 1), n_checks))
 
 
-def schema_compatible_output_path(csv_path: Path, fieldnames: list[str]) -> Path:
-    if not csv_path.exists():
-        return csv_path
-
-    with csv_path.open("r", encoding="utf-8", newline="") as f:
-        reader = csv.reader(f)
-        header = next(reader, None)
-
-    if header == fieldnames:
-        return csv_path
-
-    idx = 2
-    while True:
-        candidate = csv_path.with_name(f"{csv_path.stem}_v{idx}{csv_path.suffix}")
-        if not candidate.exists():
-            return candidate
-        with candidate.open("r", encoding="utf-8", newline="") as f:
-            reader = csv.reader(f)
-            header = next(reader, None)
-        if header == fieldnames:
-            return candidate
-        idx += 1
-
-
 def append_rows(csv_path: Path, rows: list[dict[str, str | int | float]], fieldnames: list[str]) -> None:
     if not rows:
         return
@@ -170,24 +326,89 @@ def append_rows(csv_path: Path, rows: list[dict[str, str | int | float]], fieldn
         writer.writerows(rows)
 
 
+def write_rows(csv_path: Path, rows: list[dict[str, str | int | float]], fieldnames: list[str]) -> None:
+    csv_path.parent.mkdir(parents=True, exist_ok=True)
+    with csv_path.open("w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def resolve_image_path(image_dir: Path, image_file: str) -> Path | None:
+    requested = image_dir / image_file
+    if requested.exists():
+        return requested
+
+    if not image_dir.exists():
+        return None
+
+    lowered_name = image_file.lower()
+    for candidate in image_dir.iterdir():
+        if candidate.is_file() and candidate.name.lower() == lowered_name:
+            return candidate
+
+    stem = Path(image_file).stem
+    candidates = [candidate for candidate in image_dir.iterdir() if candidate.is_file() and candidate.stem == stem]
+    if not candidates:
+        return None
+
+    requested_suffix = Path(image_file).suffix.lower()
+    preferred_suffixes = [suffix for suffix in [requested_suffix, ".jpg", ".jpeg", ".png", ".ppm", ".bmp", ".gif", ".tif", ".tiff", ".webp"] if suffix]
+
+    def sort_key(candidate: Path) -> tuple[int, str]:
+        suffix = candidate.suffix.lower()
+        try:
+            rank = preferred_suffixes.index(suffix)
+        except ValueError:
+            rank = len(preferred_suffixes)
+        return rank, candidate.name.lower()
+
+    candidates.sort(key=sort_key)
+    return candidates[0]
+
+
+def load_displayable_image_array(image_path: Path) -> np.ndarray:
+    with Image.open(image_path) as pil_image:
+        pil_image = ImageOps.exif_transpose(pil_image).convert("RGB")
+        return np.asarray(pil_image)
+
+
+def create_image_stim(
+    win: visual.Window,
+    image_path: Path,
+    size: tuple[float, float] = (1.3, 0.9),
+    units: str = "height",
+) -> visual.ImageStim:
+    try:
+        image_data = load_displayable_image_array(image_path)
+        return visual.ImageStim(win, image=image_data, size=size, units=units)
+    except Exception:
+        return visual.ImageStim(win, image=str(image_path), size=size, units=units)
+
+
 def build_image_cache(
     win: visual.Window,
     trials: list[dict[str, str]],
     image_dir: Path,
 ) -> dict[str, visual.ImageStim]:
     cache: dict[str, visual.ImageStim] = {}
+    unresolved: list[str] = []
     for trial in trials:
         image_file = trial["image_file"]
         if image_file in cache:
             continue
-        image_path = image_dir / image_file
-        if not image_path.exists():
+        image_path = resolve_image_path(image_dir, image_file)
+        if image_path is None:
+            unresolved.append(image_file)
             continue
-        cache[image_file] = visual.ImageStim(
-            win,
-            image=str(image_path),
-            size=(1.3, 0.9),
-            units="height",
+        try:
+            cache[image_file] = create_image_stim(win, image_path)
+        except Exception as exc:
+            unresolved.append(f"{image_file} ({exc})")
+    if unresolved:
+        raise ValueError(
+            f"Unable to load {len(unresolved)} image file(s) from {image_dir}: {', '.join(unresolved[:10])}"
+            + (" ..." if len(unresolved) > 10 else "")
         )
     return cache
 
@@ -201,6 +422,77 @@ def read_rows_for_run(csv_path: Path, run_id: str, phase: str | None = None) -> 
     if phase is None:
         return rows
     return [row for row in rows if row.get("phase") == phase]
+
+
+def get_condition_counts(rows: list[dict[str, str]]) -> dict[str, int]:
+    counts = Counter()
+    for row in rows:
+        condition = (row.get("description_condition") or "").strip()
+        if condition in PREPARED_DESCRIPTION_CONDITIONS:
+            counts[condition] += 1
+    return {label: counts.get(label, 0) for label in PREPARED_DESCRIPTION_CONDITIONS}
+
+
+def build_latest_participant_row(
+    project_root: Path,
+    participant: str,
+    participant_dir: Path,
+    run_dir: Path,
+    mode: str,
+    session: str,
+    run_id: str,
+    run_started_at: str,
+    run_finished_at: str,
+    run_duration_s: float,
+    run_status: str,
+    run_error: str,
+    main_output_csv: Path,
+    main_gaze_csv: Path,
+    practice_output_csv: Path,
+    practice_gaze_csv: Path,
+    main_sequence_csv: Path,
+    qc_png: Path | None,
+    n_main_trials_expected: int,
+    n_practice_trials_expected: int,
+    record_cursor_samples: bool,
+    main_trial_source: Path,
+    practice_trial_source: Path,
+) -> dict[str, str | int | float]:
+    main_rows = read_rows_for_run(main_output_csv, run_id, phase="main")
+    practice_rows = read_rows_for_run(practice_output_csv, run_id, phase="practice")
+    main_gaze_rows = read_rows_for_run(main_gaze_csv, run_id) if record_cursor_samples else []
+    practice_gaze_rows = (
+        read_rows_for_run(practice_gaze_csv, run_id) if record_cursor_samples else []
+    )
+
+    return {
+        "participant": participant,
+        "participant_folder": str(participant_dir.relative_to(project_root)),
+        "run_folder": str(run_dir.relative_to(project_root)),
+        "run_id": run_id,
+        "mode": mode,
+        "session": session,
+        "status": run_status,
+        "error_message": run_error,
+        "run_started_at": run_started_at,
+        "run_finished_at": run_finished_at,
+        "run_duration_s": round(run_duration_s, 3),
+        "n_main_trials_expected": n_main_trials_expected,
+        "n_main_trials_recorded": len(main_rows),
+        "n_practice_trials_expected": n_practice_trials_expected,
+        "n_practice_trials_recorded": len(practice_rows),
+        "n_main_gaze_rows": len(main_gaze_rows),
+        "n_practice_gaze_rows": len(practice_gaze_rows),
+        "record_cursor_samples": int(bool(record_cursor_samples)),
+        "main_trials_csv": str(main_output_csv.relative_to(project_root)),
+        "main_gaze_csv": str(main_gaze_csv.relative_to(project_root)),
+        "practice_trials_csv": str(practice_output_csv.relative_to(project_root)),
+        "practice_gaze_csv": str(practice_gaze_csv.relative_to(project_root)),
+        "main_sequence_csv": str(main_sequence_csv.relative_to(project_root)),
+        "qc_png": str(qc_png.relative_to(project_root)) if qc_png and qc_png.exists() else "",
+        "main_stimulus_source": str(main_trial_source.relative_to(project_root)),
+        "practice_stimulus_source": str(practice_trial_source.relative_to(project_root)),
+    }
 
 
 def to_float(value: str | float | int | None) -> float | None:
@@ -235,6 +527,12 @@ def create_qc_plot(
     image_view = [to_float(r.get("image_view_time_s")) for r in main_rows_sorted]
     rating = [to_float(r.get("rating")) for r in main_rows_sorted]
     rating_rt = [to_float(r.get("rating_rt_s")) for r in main_rows_sorted]
+    condition_counts = get_condition_counts(main_rows_sorted)
+    stimulus_ids = [
+        (row.get("stimulus_id") or row.get("trial_id") or "").strip()
+        for row in main_rows_sorted
+    ]
+    stimulus_ids = [stimulus_id for stimulus_id in stimulus_ids if stimulus_id]
 
     valid_image_view = [v for v in image_view if v is not None]
     valid_rating = [v for v in rating if v is not None]
@@ -256,6 +554,19 @@ def create_qc_plot(
             f"Rating RT (s): mean {sum(valid_rating_rt)/len(valid_rating_rt):.2f}, "
             f"min {min(valid_rating_rt):.2f}, max {max(valid_rating_rt):.2f}"
         )
+    if condition_counts:
+        summary.append(
+            "Condition counts: "
+            + ", ".join(f"{label} {condition_counts[label]}" for label in PREPARED_DESCRIPTION_CONDITIONS)
+        )
+    if stimulus_ids:
+        unique_stimuli = len(set(stimulus_ids))
+        if unique_stimuli == len(stimulus_ids):
+            summary.append(f"Stimulus IDs: all unique ({unique_stimuli})")
+        else:
+            summary.append(
+                f"Warning: repeated stimulus IDs detected ({unique_stimuli}/{len(stimulus_ids)} unique)."
+            )
 
     if len(main_rows_sorted) != expected_main_trials:
         summary.append("Warning: trial count differs from expected.")
@@ -292,7 +603,7 @@ def create_qc_plot(
         import matplotlib.pyplot as plt
 
         output_dir.mkdir(parents=True, exist_ok=True)
-        qc_path = output_dir / f"{run_id}_qc.png"
+        qc_path = output_dir / "qc.png"
 
         fig, axes = plt.subplots(2, 1, figsize=(10.5, 7.2), constrained_layout=True)
         fig.suptitle(f"Run QC - {run_id}", fontsize=13)
@@ -355,6 +666,11 @@ def build_validity_checklist(
     image_view = [to_float(r.get("image_view_time_s")) for r in rows]
     rating = [to_float(r.get("rating")) for r in rows]
     rating_rt = [to_float(r.get("rating_rt_s")) for r in rows]
+    condition_counts = get_condition_counts(rows)
+    stimulus_ids = [
+        (row.get("stimulus_id") or row.get("trial_id") or "").strip() for row in rows
+    ]
+    stimulus_ids = [stimulus_id for stimulus_id in stimulus_ids if stimulus_id]
 
     missing_iv = sum(v is None for v in image_view)
     missing_rating = sum(v is None for v in rating)
@@ -399,6 +715,24 @@ def build_validity_checklist(
         f"{'[PASS]' if abs(mismatch_triggered - expected_checks) <= 1 else '[WARN]'} "
         f"Manipulation checks: {mismatch_triggered} (target ~{expected_checks})"
     )
+
+    if condition_counts:
+        condition_values = list(condition_counts.values())
+        condition_balanced = max(condition_values) - min(condition_values) <= 1
+        checks.append(
+            f"{'[PASS]' if condition_balanced else '[WARN]'} Condition balance: "
+            + ", ".join(f"{label}={condition_counts[label]}" for label in PREPARED_DESCRIPTION_CONDITIONS)
+        )
+
+    if stimulus_ids:
+        unique_stimuli = len(set(stimulus_ids))
+        if unique_stimuli == len(stimulus_ids):
+            checks.append(f"[PASS] Unique stimulus IDs: {unique_stimuli}/{len(stimulus_ids)}")
+        else:
+            checks.append(
+                f"[WARN] Unique stimulus IDs: {unique_stimuli}/{len(stimulus_ids)} "
+                "(repeats allowed only when trial count exceeds the available pool)"
+            )
 
     if expect_cursor_samples:
         sample_count_by_trial: dict[int, int] = defaultdict(int)
@@ -927,6 +1261,8 @@ def run_phase(
     trial_fieldnames: list[str],
     gaze_fieldnames: list[str],
     record_cursor_samples: bool,
+    sequence_csv: Path | None = None,
+    sequence_fieldnames: list[str] | None = None,
     check_trials: set[int] | None = None,
     enable_breaks: bool = False,
     show_min_view_countdown: bool = True,
@@ -990,6 +1326,29 @@ def run_phase(
     total_breaks = len(BREAK_AFTER_TRIALS) if enable_breaks else 0
     break_counter = 0
 
+    if sequence_csv is not None:
+        if sequence_fieldnames is None:
+            raise ValueError("sequence_fieldnames must be provided when sequence_csv is set.")
+        sequence_rows = [
+            {
+                "run_id": run_id,
+                "phase": phase_name,
+                "participant": participant,
+                "session": session,
+                "trial_index": idx,
+                "stimulus_id": trial.get("stimulus_id") or trial.get("trial_id", ""),
+                "description_condition": trial.get("description_condition", ""),
+                "metadata_condition": trial.get("metadata_condition", ""),
+                "description": trial.get("description", ""),
+                "image_file": trial.get("image_file", ""),
+                "original_filename": trial.get("original_filename", ""),
+                "original_style_folder": trial.get("original_style_folder", ""),
+                "original_relative_path": trial.get("original_relative_path", ""),
+            }
+            for idx, trial in enumerate(trials, start=1)
+        ]
+        write_rows(sequence_csv, sequence_rows, sequence_fieldnames)
+
     for idx, trial in enumerate(trials, start=1):
         progress_stim.text = f"{phase_name.capitalize()} Trial {idx}/{len(trials)}"
 
@@ -1016,7 +1375,7 @@ def run_phase(
             progress_stim,
         )
 
-        image_path = image_dir / trial["image_file"]
+        image_path = resolve_image_path(image_dir, trial["image_file"]) or (image_dir / trial["image_file"])
         image_stim = image_cache.get(trial["image_file"])
         (
             image_view_time,
@@ -1108,8 +1467,14 @@ def run_phase(
             "session": session,
             "trial_index": idx,
             "trial_id": trial["trial_id"],
+            "stimulus_id": trial.get("stimulus_id") or trial["trial_id"],
+            "description_condition": trial.get("description_condition", ""),
+            "metadata_condition": trial.get("metadata_condition", ""),
             "description": trial["description"],
             "image_file": trial["image_file"],
+            "original_filename": trial.get("original_filename", ""),
+            "original_style_folder": trial.get("original_style_folder", ""),
+            "original_relative_path": trial.get("original_relative_path", ""),
             "trial_start_session_s": round(trial_start_session, 6),
             "trial_start_unix_s": round(trial_start_unix, 6),
             "description_onset_session_s": round(desc_onset_session, 6),
@@ -1155,28 +1520,11 @@ def main() -> None:
     mode, participant, session, n_main_trials_override = get_run_info()
 
     project_root = Path(__file__).resolve().parents[1]
-    main_trial_file = project_root / "stimuli" / "trials.csv"
-    practice_trial_file = project_root / "stimuli" / "practice" / "trials.csv"
-
-    main_image_dir = project_root / "images"
-    practice_image_dir = project_root / "images" / "practice"
-
-    runs_root = project_root / "runs"
-    if mode == "test":
-        main_output_csv = runs_root / "test" / "all_runs_test.csv"
-        main_gaze_csv = runs_root / "test" / "gaze_samples_test.csv"
-        practice_output_csv = runs_root / "test" / "practice" / "all_runs_practice_test.csv"
-        practice_gaze_csv = runs_root / "test" / "practice" / "gaze_samples_practice_test.csv"
-    elif mode == "rg":
-        main_output_csv = runs_root / "rg" / "all_runs_rg.csv"
-        main_gaze_csv = runs_root / "rg" / "gaze_samples_rg.csv"
-        practice_output_csv = runs_root / "rg" / "practice" / "all_runs_practice_rg.csv"
-        practice_gaze_csv = runs_root / "rg" / "practice" / "gaze_samples_practice_rg.csv"
-    else:
-        main_output_csv = runs_root / "all_runs.csv"
-        main_gaze_csv = runs_root / "gaze_samples.csv"
-        practice_output_csv = runs_root / "practice" / "all_runs_practice.csv"
-        practice_gaze_csv = runs_root / "practice" / "gaze_samples_practice.csv"
+    practice_root = project_root / "input" / "practice"
+    practice_trial_file = practice_root / "stimuli.csv"
+    practice_image_dir = practice_root / "images"
+    prepared_stimuli_root = project_root / "input" / "main"
+    prepared_trial_file = prepared_stimuli_root / "stimuli.csv"
 
     practice_trials_raw = load_trials(practice_trial_file)
     if len(practice_trials_raw) < N_PRACTICE_TRIALS:
@@ -1189,9 +1537,42 @@ def main() -> None:
         if n_main_trials_override is not None
         else (N_TRIALS_TEST if mode == "test" else (N_TRIALS_RG if mode == "rg" else N_TRIALS_REAL))
     )
+    if n_main_trials > MAX_MAIN_STIMULI:
+        raise ValueError(
+            f"Requested {n_main_trials} main trials, but the prepared image bank is capped at {MAX_MAIN_STIMULI}."
+        )
     practice_trials = build_trial_sequence(practice_trials_raw, N_PRACTICE_TRIALS)
-    main_trials = build_trial_sequence(load_trials(main_trial_file), n_main_trials)
+    if not prepared_trial_file.exists():
+        raise FileNotFoundError(f"Missing prepared stimulus file: {prepared_trial_file}")
+    main_image_dir = prepared_stimuli_root / "images"
+    main_trials = build_prepared_trial_sequence(load_prepared_trials(prepared_trial_file), n_main_trials)
+    main_trial_source = prepared_trial_file
+    practice_trial_source = practice_trial_file
     main_check_trials = choose_check_trials(n_main_trials, CHECK_RATE)
+
+    run_timestamp = build_run_timestamp()
+    participant_slug = sanitize_path_component(participant)
+    run_id = f"{mode}_{participant_slug}_s{session}_{run_timestamp}"
+    output_layout = build_run_output_layout(project_root, participant, run_timestamp)
+    output_root = Path(output_layout["output_root"])
+    participant_dir = Path(output_layout["participant_dir"])
+    run_dir = Path(output_layout["run_dir"])
+    main_output_csv = Path(output_layout["main_trials_csv"])
+    main_gaze_csv = Path(output_layout["main_gaze_csv"])
+    practice_output_csv = Path(output_layout["practice_trials_csv"])
+    practice_gaze_csv = Path(output_layout["practice_gaze_csv"])
+    main_sequence_csv = Path(output_layout["main_sequence_csv"])
+    qc_png = Path(output_layout["qc_png"])
+    participant_index_csv = Path(output_layout["participant_index_csv"])
+    participant_dir.mkdir(parents=True, exist_ok=True)
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    run_started_wall = datetime.now()
+    run_started_at = run_started_wall.isoformat(timespec="seconds")
+    run_finished_at = ""
+    run_duration_s = 0.0
+    run_status = "in_progress"
+    run_error = ""
 
     session_clock = core.MonotonicClock()
     win = visual.Window(
@@ -1206,7 +1587,8 @@ def main() -> None:
     win.winHandle.push_handlers(key_state)
     quit_state = QuitState()
     record_cursor_samples = mode in {"real", "test"}
-
+    qc_path: Path | None = None
+    run_finished_wall: datetime | None = None
     quit_hint = visual.TextStim(
         win,
         text="",
@@ -1218,8 +1600,6 @@ def main() -> None:
     practice_cache = build_image_cache(win, practice_trials, practice_image_dir)
     main_cache = build_image_cache(win, main_trials, main_image_dir)
 
-    run_id = f"{mode}_{participant}_s{session}_{int(time.time() * 1000)}"
-
     trial_fieldnames = [
         "run_id",
         "phase",
@@ -1227,8 +1607,14 @@ def main() -> None:
         "session",
         "trial_index",
         "trial_id",
+        "stimulus_id",
+        "description_condition",
+        "metadata_condition",
         "description",
         "image_file",
+        "original_filename",
+        "original_style_folder",
+        "original_relative_path",
         "trial_start_session_s",
         "trial_start_unix_s",
         "description_onset_session_s",
@@ -1256,6 +1642,22 @@ def main() -> None:
         "mismatch_offset_unix_s",
     ]
 
+    sequence_fieldnames = [
+        "run_id",
+        "phase",
+        "participant",
+        "session",
+        "trial_index",
+        "stimulus_id",
+        "description_condition",
+        "metadata_condition",
+        "description",
+        "image_file",
+        "original_filename",
+        "original_style_folder",
+        "original_relative_path",
+    ]
+
     gaze_fieldnames = [
         "run_id",
         "participant",
@@ -1271,11 +1673,6 @@ def main() -> None:
         "gaze_y_pix",
         "units",
     ]
-
-    main_output_csv = schema_compatible_output_path(main_output_csv, trial_fieldnames)
-    practice_output_csv = schema_compatible_output_path(practice_output_csv, trial_fieldnames)
-    main_gaze_csv = schema_compatible_output_path(main_gaze_csv, gaze_fieldnames)
-    practice_gaze_csv = schema_compatible_output_path(practice_gaze_csv, gaze_fieldnames)
 
     if mode == "test":
         break_text = "Break screens are disabled in this short test block."
@@ -1379,6 +1776,8 @@ def main() -> None:
             trial_fieldnames=trial_fieldnames,
             gaze_fieldnames=gaze_fieldnames,
             record_cursor_samples=record_cursor_samples,
+            sequence_csv=None,
+            sequence_fieldnames=None,
             check_trials=None,
             enable_breaks=False,
             show_min_view_countdown=(mode == "test"),
@@ -1406,6 +1805,8 @@ def main() -> None:
             trial_fieldnames=trial_fieldnames,
             gaze_fieldnames=gaze_fieldnames,
             record_cursor_samples=record_cursor_samples,
+            sequence_csv=main_sequence_csv,
+            sequence_fieldnames=sequence_fieldnames,
             check_trials=main_check_trials,
             enable_breaks=(mode != "test"),
             show_min_view_countdown=(mode == "test"),
@@ -1437,13 +1838,12 @@ def main() -> None:
 
         main_rows = read_rows_for_run(main_output_csv, run_id, phase="main")
         gaze_rows = read_rows_for_run(main_gaze_csv, run_id) if record_cursor_samples else []
-        qc_dir = main_output_csv.parent / "qc"
         qc_path, qc_summary = create_qc_plot(
             run_id=run_id,
             mode=mode,
             main_rows=main_rows,
             gaze_rows=gaze_rows,
-            output_dir=qc_dir,
+            output_dir=run_dir,
             expected_main_trials=n_main_trials,
             expect_cursor_samples=record_cursor_samples,
         )
@@ -1502,7 +1902,12 @@ def main() -> None:
             win,
             text=(
                 f"{qc_text}\n\n"
+                f"Output root: {output_root.relative_to(project_root)}\n"
+                f"Run folder: {run_dir.relative_to(project_root)}\n"
                 f"QC figure: {qc_path.relative_to(project_root) if qc_path is not None else 'not available'}\n"
+                f"Sequence manifest: {main_sequence_csv.relative_to(project_root)}\n"
+                f"Latest participant index: {participant_index_csv.relative_to(project_root)}\n"
+                f"Stimulus source: {main_trial_source.relative_to(project_root)}\n"
                 f"Main trials: {main_output_csv.relative_to(project_root)}\n"
                 f"Practice trials: {practice_output_csv.relative_to(project_root)}"
             ),
@@ -1570,9 +1975,18 @@ def main() -> None:
             else:
                 hold_close_s = 0.0
             if hold_close_s >= 1.0:
+                run_status = "completed"
+                run_finished_wall = datetime.now()
+                run_finished_at = run_finished_wall.isoformat(timespec="seconds")
+                run_duration_s = (run_finished_wall - run_started_wall).total_seconds()
                 break
 
     except UserAbort:
+        run_status = "aborted"
+        run_finished_wall = datetime.now()
+        run_finished_at = run_finished_wall.isoformat(timespec="seconds")
+        run_duration_s = (run_finished_wall - run_started_wall).total_seconds()
+        run_error = ""
         abort_msg = visual.TextStim(
             win,
             text="Session ended early. Partial data has been saved.",
@@ -1583,7 +1997,93 @@ def main() -> None:
         win.flip()
         core.wait(1.5)
 
+    except Exception as exc:
+        run_status = "error"
+        run_error = f"{type(exc).__name__}: {exc}"
+        run_finished_wall = datetime.now()
+        run_finished_at = run_finished_wall.isoformat(timespec="seconds")
+        run_duration_s = (run_finished_wall - run_started_wall).total_seconds()
+        error_msg = visual.TextStim(
+            win,
+            text=(
+                "Run failed.\n\n"
+                f"{run_error}\n\n"
+                "Partial data, if any, has been saved.\n"
+                "Press SPACE to close."
+            ),
+            color="white",
+            height=0.045,
+            wrapWidth=1.45,
+        )
+        error_msg.draw()
+        win.flip()
+        event.waitKeys(keyList=["space"])
+
     finally:
+        if run_status == "in_progress":
+            run_status = "completed"
+        if not run_finished_at:
+            run_finished_wall = datetime.now()
+            run_finished_at = run_finished_wall.isoformat(timespec="seconds")
+            run_duration_s = (run_finished_wall - run_started_wall).total_seconds()
+        latest_participant_row = build_latest_participant_row(
+            project_root=project_root,
+            participant=participant,
+            participant_dir=participant_dir,
+            run_dir=run_dir,
+            mode=mode,
+            session=session,
+            run_id=run_id,
+            run_started_at=run_started_at,
+            run_finished_at=run_finished_at,
+            run_duration_s=run_duration_s,
+            run_status=run_status,
+            run_error=run_error,
+            main_output_csv=main_output_csv,
+            main_gaze_csv=main_gaze_csv,
+            practice_output_csv=practice_output_csv,
+            practice_gaze_csv=practice_gaze_csv,
+            main_sequence_csv=main_sequence_csv,
+            qc_png=qc_path if qc_path is not None else qc_png,
+            n_main_trials_expected=n_main_trials,
+            n_practice_trials_expected=N_PRACTICE_TRIALS,
+            record_cursor_samples=record_cursor_samples,
+            main_trial_source=main_trial_source,
+            practice_trial_source=practice_trial_source,
+        )
+        upsert_latest_row(
+            participant_index_csv,
+            latest_participant_row,
+            [
+                "participant",
+                "participant_folder",
+                "run_folder",
+                "run_id",
+                "mode",
+                "session",
+                "status",
+                "error_message",
+                "run_started_at",
+                "run_finished_at",
+                "run_duration_s",
+                "n_main_trials_expected",
+                "n_main_trials_recorded",
+                "n_practice_trials_expected",
+                "n_practice_trials_recorded",
+                "n_main_gaze_rows",
+                "n_practice_gaze_rows",
+                "record_cursor_samples",
+                "main_trials_csv",
+                "main_gaze_csv",
+                "practice_trials_csv",
+                "practice_gaze_csv",
+                "main_sequence_csv",
+                "qc_png",
+                "main_stimulus_source",
+                "practice_stimulus_source",
+            ],
+            "participant",
+        )
         win.close()
         core.quit()
 
