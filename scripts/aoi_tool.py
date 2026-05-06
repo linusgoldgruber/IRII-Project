@@ -172,6 +172,16 @@ def update_polygon_bbox(aoi: AOI) -> None:
     aoi.h = max(0.01, clamp01(y1 - y0))
 
 
+def simplify_points(points: list[tuple[float, float]], max_points: int = 140) -> list[tuple[float, float]]:
+    if len(points) <= max_points:
+        return points
+    step = max(1, math.ceil(len(points) / max_points))
+    simplified = points[::step]
+    if simplified[-1] != points[-1]:
+        simplified.append(points[-1])
+    return simplified
+
+
 def image_oriented_defaults(image_path: Path, k: int) -> list[AOI]:
     image = Image.open(image_path).convert("RGB")
     small = image.copy()
@@ -231,6 +241,14 @@ def image_oriented_defaults(image_path: Path, k: int) -> list[AOI]:
         aois.append(AOI("AOI3", "lower / supporting detail", "ellipse", 0.28, 0.62, 0.44, 0.24))
     if k >= 5:
         aois.append(AOI("AOI4", "upper / contextual detail", "ellipse", 0.30, 0.10, 0.40, 0.24))
+    if k >= 6:
+        aois.append(AOI("AOI5", "left detail", "ellipse", 0.08, 0.34, 0.22, 0.32))
+    if k >= 7:
+        aois.append(AOI("AOI6", "right detail", "ellipse", 0.70, 0.34, 0.22, 0.32))
+    if k >= 8:
+        aois.append(AOI("AOI7", "upper edge detail", "rect", 0.25, 0.02, 0.50, 0.16))
+    if k >= 9:
+        aois.append(AOI("AOI8", "lower edge detail", "rect", 0.25, 0.82, 0.50, 0.16))
     return normalize_aois(aois)
 
 
@@ -308,6 +326,7 @@ def label_stats(labels: np.ndarray, aois: list[AOI]) -> list[dict[str, Any]]:
                 "aoi_id": aoi.aoi_id,
                 "label": aoi.label,
                 "kind": aoi.kind,
+                "z_order": idx,
                 "x_norm": "" if aoi.is_background else aoi.x,
                 "y_norm": "" if aoi.is_background else aoi.y,
                 "w_norm": "" if aoi.is_background else aoi.w,
@@ -361,7 +380,7 @@ def draw_preview(image: Image.Image, aois: list[AOI], labels: np.ndarray) -> Ima
     return preview.convert("RGB")
 
 
-def write_outputs(images: list[Path], store: dict[str, Any], k: int) -> None:
+def write_outputs(images: list[Path], store: dict[str, Any], k: int | None) -> None:
     AOI_DIR.mkdir(parents=True, exist_ok=True)
     PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
     LABEL_MAP_DIR.mkdir(parents=True, exist_ok=True)
@@ -372,6 +391,7 @@ def write_outputs(images: list[Path], store: dict[str, Any], k: int) -> None:
         "aoi_id",
         "label",
         "kind",
+        "z_order",
         "x_norm",
         "y_norm",
         "w_norm",
@@ -400,7 +420,7 @@ def write_outputs(images: list[Path], store: dict[str, Any], k: int) -> None:
 class ShapeEditor:
     HANDLE_SIZE = 7
 
-    def __init__(self, images: list[Path], store: dict[str, Any], default_k: int, max_display: tuple[int, int]) -> None:
+    def __init__(self, images: list[Path], store: dict[str, Any], default_k: int | None, max_display: tuple[int, int]) -> None:
         if tk is None:
             raise RuntimeError("tkinter is not available in this Python installation")
         self.images = images
@@ -414,6 +434,9 @@ class ShapeEditor:
         self.drag_action: str | None = None
         self.drag_start: tuple[float, float] | None = None
         self.original_box: tuple[float, float, float, float] | None = None
+        self.original_points: list[tuple[float, float]] | None = None
+        self.lasso_points: list[tuple[float, float]] = []
+        self.lasso_line_id: int | None = None
         self.scale = 1.0
         self.display_size = (1, 1)
         self.tk_image: ImageTk.PhotoImage | None = None
@@ -429,8 +452,9 @@ class ShapeEditor:
             anchor="w",
             justify="left",
             text=(
-                "Select/drag shape or handles | E: draw ellipse | R: draw rect | Del: delete | Tab: next AOI | "
-                "A: auto default | 2/3/4/5: auto with AOI count | +/- resize | Arrows nudge | S save | N/P navigate | Q quit"
+                "Drag shape/handles | E ellipse | R rect | L lasso/freehand | Del delete | Tab next AOI | "
+                "] bring forward | [ send backward | T top | B bottom | "
+                "A auto default | 2-9 auto count | +/- resize | Arrows nudge | S save | N/P navigate | Q quit"
             ),
         )
         self.footer.pack(fill="x")
@@ -488,6 +512,34 @@ class ShapeEditor:
                 return idx, "move"
         return None
 
+    def add_lasso_point(self, x: float, y: float) -> None:
+        if self.lasso_points:
+            last_x, last_y = self.lasso_points[-1]
+            dx = (x - last_x) * self.display_size[0]
+            dy = (y - last_y) * self.display_size[1]
+            if math.hypot(dx, dy) < 3.0:
+                return
+        self.lasso_points.append((x, y))
+        coords: list[float] = []
+        for px, py in self.lasso_points:
+            coords.extend([px * self.display_size[0], py * self.display_size[1]])
+        if self.lasso_line_id is None:
+            self.lasso_line_id = self.canvas.create_line(*coords, fill="white", width=3, smooth=True)
+        else:
+            self.canvas.coords(self.lasso_line_id, *coords)
+
+    def add_polygon_aoi(self, points: list[tuple[float, float]]) -> None:
+        if len(points) < 3 or len(self.aois) >= MAX_TOTAL_AOIS:
+            return
+        simplified = simplify_points(points)
+        if len(simplified) < 3:
+            simplified = points
+        idx = len(self.aois)
+        aoi = AOI(f"AOI{idx}", f"AOI {idx}", "polygon", points=simplified)
+        update_polygon_bbox(aoi)
+        self.aois.append(aoi)
+        self.selected = idx
+
     def render(self) -> None:
         image_path = self.current_image_path()
         image = Image.open(image_path).convert("RGB")
@@ -504,7 +556,12 @@ class ShapeEditor:
             x0, y0, x1, y1 = self.display_box(aoi)
             color = "#%02x%02x%02x" % PALETTE[idx % len(PALETTE)]
             width = 4 if idx == self.selected else 2
-            if aoi.kind == "rect":
+            if aoi.kind == "polygon" and aoi.points:
+                coords: list[float] = []
+                for px, py in aoi.points:
+                    coords.extend([px * self.display_size[0], py * self.display_size[1]])
+                self.canvas.create_polygon(*coords, outline=color, fill="", width=width)
+            elif aoi.kind == "rect":
                 self.canvas.create_rectangle(x0, y0, x1, y1, outline=color, width=width)
             else:
                 self.canvas.create_oval(x0, y0, x1, y1, outline=color, width=width)
@@ -513,15 +570,31 @@ class ShapeEditor:
             if idx == self.selected:
                 for hx, hy in [(x0, y0), (x1, y0), (x0, y1), (x1, y1)]:
                     self.canvas.create_rectangle(hx - self.HANDLE_SIZE, hy - self.HANDLE_SIZE, hx + self.HANDLE_SIZE, hy + self.HANDLE_SIZE, fill=color, outline="white")
+        stack = "Stack bottom->top: " + " < ".join(
+            f"{idx}:{aoi.aoi_id}" for idx, aoi in enumerate(normalize_aois(self.aois)) if not aoi.is_background
+        )
         self.header.configure(
-            text=f"{self.index + 1}/{len(self.images)}  {image_path.name}  {image.width}x{image.height}  mode={self.mode}  selected={self.aois[self.selected].aoi_id if self.aois else 'none'}"
+            text=(
+                f"{self.index + 1}/{len(self.images)}  {image_path.name}  {image.width}x{image.height}  "
+                f"mode={self.mode}  selected={self.aois[self.selected].aoi_id if self.aois else 'none'}\n"
+                f"{stack}"
+            )
         )
 
     def on_mouse_down(self, event: Any) -> None:
         x, y = self.norm_pos(event)
         self.drag_start = (x, y)
+        self.original_points = None
+        if self.mode == "lasso":
+            if len(self.aois) >= MAX_TOTAL_AOIS:
+                return
+            self.drag_action = "lasso"
+            self.lasso_points = []
+            self.lasso_line_id = None
+            self.add_lasso_point(x, y)
+            return
         if self.mode in {"ellipse", "rect"}:
-            if len(self.aois) >= 5:
+            if len(self.aois) >= MAX_TOTAL_AOIS:
                 return
             kind = self.mode
             idx = len(self.aois)
@@ -535,10 +608,18 @@ class ShapeEditor:
             self.selected, self.drag_action = hit
         aoi = self.aois[self.selected]
         self.original_box = (aoi.x, aoi.y, aoi.w, aoi.h)
+        self.original_points = list(aoi.points or [])
         self.render()
 
     def on_mouse_drag(self, event: Any) -> None:
         if self.drag_start is None or self.drag_action is None or self.selected <= 0:
+            if self.drag_action == "lasso":
+                x, y = self.norm_pos(event)
+                self.add_lasso_point(x, y)
+            return
+        if self.drag_action == "lasso":
+            x, y = self.norm_pos(event)
+            self.add_lasso_point(x, y)
             return
         x, y = self.norm_pos(event)
         sx, sy = self.drag_start
@@ -549,6 +630,17 @@ class ShapeEditor:
             aoi.y = clamp01(oy + y - sy)
             aoi.x = min(aoi.x, 1.0 - aoi.w)
             aoi.y = min(aoi.y, 1.0 - aoi.h)
+            if aoi.kind == "polygon" and self.original_points:
+                dx = aoi.x - ox
+                dy = aoi.y - oy
+                aoi.points = [
+                    (
+                        min(max(0.0, px + dx), 1.0),
+                        min(max(0.0, py + dy), 1.0),
+                    )
+                    for px, py in self.original_points
+                ]
+                update_polygon_bbox(aoi)
         else:
             x0, y0, x1, y1 = ox, oy, ox + ow, oy + oh
             if "n" in self.drag_action:
@@ -565,12 +657,37 @@ class ShapeEditor:
             aoi.y = top
             aoi.w = max(0.01, right - left)
             aoi.h = max(0.01, bottom - top)
+            if aoi.kind == "polygon" and self.original_points:
+                scale_x = aoi.w / max(0.01, ow)
+                scale_y = aoi.h / max(0.01, oh)
+                aoi.points = [
+                    (
+                        clamp01(aoi.x + (px - ox) * scale_x),
+                        clamp01(aoi.y + (py - oy) * scale_y),
+                    )
+                    for px, py in self.original_points
+                ]
+                update_polygon_bbox(aoi)
         self.render()
 
     def on_mouse_up(self, event: Any) -> None:
+        if self.drag_action == "lasso":
+            x, y = self.norm_pos(event)
+            self.add_lasso_point(x, y)
+            self.add_polygon_aoi(self.lasso_points)
+            self.lasso_points = []
+            self.lasso_line_id = None
+            self.drag_start = None
+            self.drag_action = None
+            self.original_box = None
+            self.original_points = None
+            self.mode = "select"
+            self.render()
+            return
         self.drag_start = None
         self.drag_action = None
         self.original_box = None
+        self.original_points = None
         if self.mode in {"ellipse", "rect"}:
             self.mode = "select"
         self.render()
@@ -585,29 +702,69 @@ class ShapeEditor:
         if aoi is None or aoi.is_background:
             return
         cx, cy = aoi.x + aoi.w / 2.0, aoi.y + aoi.h / 2.0
+        old_x, old_y, old_w, old_h = aoi.x, aoi.y, aoi.w, aoi.h
         aoi.w = max(0.01, min(1.0, aoi.w * factor))
         aoi.h = max(0.01, min(1.0, aoi.h * factor))
         aoi.x = min(max(0.0, cx - aoi.w / 2.0), 1.0 - aoi.w)
         aoi.y = min(max(0.0, cy - aoi.h / 2.0), 1.0 - aoi.h)
+        if aoi.kind == "polygon" and aoi.points:
+            scale_x = aoi.w / max(0.01, old_w)
+            scale_y = aoi.h / max(0.01, old_h)
+            aoi.points = [
+                (
+                    clamp01(aoi.x + (px - old_x) * scale_x),
+                    clamp01(aoi.y + (py - old_y) * scale_y),
+                )
+                for px, py in aoi.points
+            ]
+            update_polygon_bbox(aoi)
         self.render()
 
     def nudge_selected(self, dx: float, dy: float) -> None:
         aoi = self.selected_aoi()
         if aoi is None or aoi.is_background:
             return
+        old_x, old_y = aoi.x, aoi.y
         aoi.x = min(max(0.0, aoi.x + dx), 1.0 - aoi.w)
         aoi.y = min(max(0.0, aoi.y + dy), 1.0 - aoi.h)
+        if aoi.kind == "polygon" and aoi.points:
+            actual_dx = aoi.x - old_x
+            actual_dy = aoi.y - old_y
+            aoi.points = [(clamp01(px + actual_dx), clamp01(py + actual_dy)) for px, py in aoi.points]
+            update_polygon_bbox(aoi)
+        self.render()
+
+    def move_selected_layer(self, target: str) -> None:
+        if self.selected <= 0 or self.selected >= len(self.aois):
+            return
+        old_idx = self.selected
+        if target == "forward":
+            new_idx = min(len(self.aois) - 1, old_idx + 1)
+        elif target == "backward":
+            new_idx = max(1, old_idx - 1)
+        elif target == "top":
+            new_idx = len(self.aois) - 1
+        elif target == "bottom":
+            new_idx = 1
+        else:
+            return
+        if new_idx == old_idx:
+            return
+        aoi = self.aois.pop(old_idx)
+        self.aois.insert(new_idx, aoi)
+        self.aois = normalize_aois(self.aois)
+        self.selected = new_idx
         self.render()
 
     def on_key(self, event: Any) -> None:
         key = event.keysym.lower()
         char = event.char.lower() if event.char else ""
-        if key in {"2", "3", "4", "5"}:
+        if key in {str(value) for value in range(2, MAX_TOTAL_AOIS)}:
             self.aois = image_oriented_defaults(self.current_image_path(), int(key))
             self.selected = 1 if len(self.aois) > 1 else 0
             self.render()
         elif char == "a":
-            self.aois = image_oriented_defaults(self.current_image_path(), self.default_k)
+            self.aois = image_oriented_defaults(self.current_image_path(), self.default_k or DEFAULT_TOTAL_AOIS)
             self.selected = 1 if len(self.aois) > 1 else 0
             self.render()
         elif char == "e":
@@ -615,6 +772,9 @@ class ShapeEditor:
             self.render()
         elif char == "r":
             self.mode = "rect"
+            self.render()
+        elif char == "l":
+            self.mode = "lasso"
             self.render()
         elif key in {"delete", "backspace"} and self.selected > 0:
             del self.aois[self.selected]
@@ -628,6 +788,14 @@ class ShapeEditor:
             self.resize_selected(1.04)
         elif key == "minus" or char == "-":
             self.resize_selected(0.96)
+        elif char == "]":
+            self.move_selected_layer("forward")
+        elif char == "[":
+            self.move_selected_layer("backward")
+        elif char == "t":
+            self.move_selected_layer("top")
+        elif char == "b":
+            self.move_selected_layer("bottom")
         elif key == "left":
             self.nudge_selected(-0.005, 0.0)
         elif key == "right":
@@ -657,7 +825,13 @@ class ShapeEditor:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Create coarse, editable shape AOIs with one optional background/remainder AOI.")
     parser.add_argument("command", choices=["init", "edit", "batch"], help="init AOIs, edit AOIs, or regenerate AOI outputs")
-    parser.add_argument("--k", type=int, default=3, choices=[2, 3, 4, 5], help="default total AOI count, including background")
+    parser.add_argument(
+        "--k",
+        type=int,
+        default=None,
+        choices=range(2, MAX_TOTAL_AOIS + 1),
+        help=f"default total AOI count, including background. Defaults to {DEFAULT_TOTAL_AOIS}; each image can still vary.",
+    )
     parser.add_argument("--image-dir", type=Path, default=IMAGE_DIR)
     parser.add_argument("--overwrite", action="store_true", help="replace existing saved AOI shapes during init")
     parser.add_argument("--from-legacy-seeds", action="store_true", help="convert existing seeds.json into ellipse AOIs")

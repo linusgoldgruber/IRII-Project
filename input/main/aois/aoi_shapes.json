@@ -9,24 +9,34 @@
           "locked": true
         },
         {
-          "h": 0.739744,
+          "h": 0.99359,
           "id": "AOI1",
+          "kind": "rect",
+          "label": "AOI 3",
+          "locked": false,
+          "w": 0.994395,
+          "x": 0.003363,
+          "y": 0.003846
+        },
+        {
+          "h": 0.739744,
+          "id": "AOI2",
           "kind": "ellipse",
           "label": "main object / figure",
           "locked": false,
           "w": 0.7713,
-          "x": 0.087444,
-          "y": 0.103846
+          "x": 0.093049,
+          "y": 0.102564
         },
         {
           "h": 0.306,
-          "id": "AOI2",
+          "id": "AOI3",
           "kind": "ellipse",
           "label": "central detail",
           "locked": false,
           "w": 0.288,
           "x": 0.311157,
-          "y": 0.267513
+          "y": 0.268795
         }
       ]
     },
@@ -59,14 +69,14 @@
           "y": 0.213333
         },
         {
-          "h": 0.131667,
+          "h": 0.133334,
           "id": "AOI3",
           "kind": "rect",
           "label": "AOI 3",
           "locked": false,
-          "w": 0.997826,
-          "x": 0.002174,
-          "y": 0.4
+          "w": 1.0,
+          "x": 0.0,
+          "y": 0.398333
         },
         {
           "h": 0.318333,
@@ -77,6 +87,16 @@
           "w": 1.0,
           "x": 0.0,
           "y": 0.535
+        },
+        {
+          "h": 0.145,
+          "id": "AOI5",
+          "kind": "rect",
+          "label": "AOI 5",
+          "locked": false,
+          "w": 1.0,
+          "x": 0.0,
+          "y": 0.855
         }
       ]
     },
@@ -89,24 +109,34 @@
           "locked": true
         },
         {
-          "h": 0.68,
+          "h": 0.739744,
           "id": "AOI1",
           "kind": "ellipse",
           "label": "main object / figure",
           "locked": false,
-          "w": 0.64,
-          "x": 0.18,
-          "y": 0.16
+          "w": 0.320926,
+          "x": 0.608652,
+          "y": 0.083333
         },
         {
-          "h": 0.306,
+          "h": 0.341026,
           "id": "AOI2",
           "kind": "ellipse",
           "label": "central detail",
           "locked": false,
-          "w": 0.288,
-          "x": 0.356,
-          "y": 0.347
+          "w": 0.304829,
+          "x": 0.264588,
+          "y": 0.038462
+        },
+        {
+          "h": 0.938462,
+          "id": "AOI3",
+          "kind": "rect",
+          "label": "AOI 3",
+          "locked": false,
+          "w": 0.566398,
+          "x": 0.031187,
+          "y": 0.030769
         }
       ]
     },
@@ -125,8 +155,8 @@
           "label": "main object / figure",
           "locked": false,
           "w": 0.64,
-          "x": 0.18,
-          "y": 0.16
+          "x": 0.182946,
+          "y": 0.090769
         },
         {
           "h": 0.306,
@@ -135,8 +165,18 @@
           "label": "central detail",
           "locked": false,
           "w": 0.288,
-          "x": 0.356,
-          "y": 0.347
+          "x": 0.475293,
+          "y": 0.152128
+        },
+        {
+          "h": 0.180769,
+          "id": "AOI3",
+          "kind": "rect",
+          "label": "AOI 3",
+          "locked": false,
+          "w": 0.163476,
+          "x": 0.022091,
+          "y": 0.016667
         }
       ]
     },
@@ -395,7 +435,7 @@
           "label": "main object / figure",
           "locked": false,
           "w": 0.64,
-          "x": 0.18,
+          "x": 0.17,
           "y": 0.16
         },
         {

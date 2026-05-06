@@ -9,7 +9,6 @@ from collections import Counter, defaultdict
 from datetime import datetime
 from pathlib import Path
 
-import numpy as np
 from PIL import Image, ImageOps
 from psychopy import core, event, gui, visual
 import study_config as cfg
@@ -32,6 +31,8 @@ RATING_SPEED_BASE = cfg.RATING_SPEED_BASE
 RATING_SPEED_ACCEL = cfg.RATING_SPEED_ACCEL
 RATING_SPEED_MAX = cfg.RATING_SPEED_MAX
 MAX_MAIN_STIMULI = cfg.MAX_MAIN_STIMULI
+ALPHA_SHOW_IMAGE_PROMPTS = cfg.ALPHA_SHOW_IMAGE_PROMPTS
+ALPHA_SHOW_STIMULUS_DEBUG = cfg.ALPHA_SHOW_STIMULUS_DEBUG
 
 PREPARED_DESCRIPTION_CONDITIONS = ("congruent", "ambiguous", "incongruent")
 PREPARED_METADATA_CONDITION_BY_LABEL = {
@@ -367,23 +368,34 @@ def resolve_image_path(image_dir: Path, image_file: str) -> Path | None:
     return candidates[0]
 
 
-def load_displayable_image_array(image_path: Path) -> np.ndarray:
+def fit_image_size_height_units(
+    image_path: Path,
+    max_width: float = cfg.IMAGE_MAX_WIDTH_HEIGHT_UNITS,
+    max_height: float = cfg.IMAGE_MAX_HEIGHT_HEIGHT_UNITS,
+) -> tuple[float, float]:
     with Image.open(image_path) as pil_image:
-        pil_image = ImageOps.exif_transpose(pil_image).convert("RGB")
-        return np.asarray(pil_image)
+        pil_image = ImageOps.exif_transpose(pil_image)
+        width_px, height_px = pil_image.size
+    if width_px <= 0 or height_px <= 0:
+        return max_width, max_height
+
+    aspect = width_px / height_px
+    width = max_height * aspect
+    height = max_height
+    if width > max_width:
+        width = max_width
+        height = max_width / aspect
+    return width, height
 
 
 def create_image_stim(
     win: visual.Window,
     image_path: Path,
-    size: tuple[float, float] = (1.3, 0.9),
+    size: tuple[float, float] | None = None,
     units: str = "height",
 ) -> visual.ImageStim:
-    try:
-        image_data = load_displayable_image_array(image_path)
-        return visual.ImageStim(win, image=image_data, size=size, units=units)
-    except Exception:
-        return visual.ImageStim(win, image=str(image_path), size=size, units=units)
+    stim_size = size or fit_image_size_height_units(image_path)
+    return visual.ImageStim(win, image=str(image_path), size=stim_size, units=units)
 
 
 def build_image_cache(
@@ -898,6 +910,16 @@ def show_image_until_continue(
         height=0.03,
         pos=(0, -0.42),
     )
+    alpha_debug_stim = visual.TextStim(
+        win,
+        text="",
+        color="#ffd166",
+        height=0.025,
+        pos=(0.62, 0.46),
+        alignText="right",
+        anchorHoriz="right",
+        wrapWidth=0.7,
+    )
 
     raw_cursor_points: list[tuple[float, float, float, float]] = []
     first_f_session: float | None = None
@@ -941,7 +963,7 @@ def show_image_until_continue(
         wait_left = max(0.0, min_view_s - elapsed)
 
         if wait_left > 0:
-            if show_min_view_countdown:
+            if show_min_view_countdown or ALPHA_SHOW_IMAGE_PROMPTS:
                 min_wait_stim.text = f"Keep viewing for {wait_left:0.1f}s before continuing"
             else:
                 min_wait_stim.text = ""
@@ -949,10 +971,14 @@ def show_image_until_continue(
             min_wait_stim.text = "Press SPACE to continue"
 
         quit_hint.text = quit_state.active_message(now_session)
+        if ALPHA_SHOW_STIMULUS_DEBUG:
+            alpha_debug_stim.text = f"{trial_index}: {image_file}"
 
         progress_stim.draw()
         draw_stim.draw()
         min_wait_stim.draw()
+        if ALPHA_SHOW_STIMULUS_DEBUG:
+            alpha_debug_stim.draw()
         if quit_hint.text:
             quit_hint.draw()
         win.flip()
@@ -1578,6 +1604,7 @@ def main() -> None:
     win = visual.Window(
         size=cfg.WINDOW_SIZE,
         fullscr=cfg.FULLSCREEN,
+        screen=cfg.SCREEN_INDEX,
         color=cfg.WINDOW_COLOR,
         units=cfg.WINDOW_UNITS,
     )

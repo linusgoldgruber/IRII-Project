@@ -1,18 +1,47 @@
 # TrackingScript (PsychoPy)
 
-## Setup
+## Setup For The Study Task
+
+Use conda for `scripts/study_task.py`, especially on Windows. This avoids
+building PsychoPy media dependencies such as `ffpyplayer` through pip.
+
+Install Miniforge from:
+
+```text
+https://conda-forge.org/download/
+```
+
+Then open "Miniforge Prompt" or "Anaconda Prompt" in the project folder and run:
+
+```bash
+conda env create -f environment-study.yml
+conda activate irii-study
+python scripts/study_task.py
+```
+
+If the environment already exists and you changed dependencies:
+
+```bash
+conda env update -f environment-study.yml --prune
+conda activate irii-study
+```
+
+## Lightweight AOI-Only Setup
+
+The AOI editor does not need PsychoPy. If you only want to edit AOIs, this is
+faster:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
-pip install -r requirements.txt
+pip install numpy pillow
 ```
 
 ## Run
 
 ```bash
-source .venv/bin/activate
+conda activate irii-study
 python scripts/study_task.py
 ```
 
@@ -88,14 +117,17 @@ into top-left/top-right regions.
 
 ```bash
 source .venv/bin/activate
-python scripts/aoi_tool.py init --k 3 --overwrite
+python scripts/aoi_tool.py init
 ```
+
+`--k` is optional. It only controls the automatic starting layout; individual
+images can have different AOI counts after editing.
 
 This writes:
 
 - `input/main/aois/aoi_shapes.json`: normalized AOI shapes per image
 - `input/main/aois/aois.csv`: one row per image AOI, including shape type,
-  area, and bounding box
+  area, bounding box, and polygon points when applicable
 - `input/main/aois/previews/`: overlay images for visual checking
 - `input/main/aois/label_maps/`: grayscale AOI label maps, where pixel values
   `1..k` identify AOI membership. `1` is the background/rest AOI.
@@ -104,7 +136,7 @@ To manually adjust AOI shapes:
 
 ```bash
 source .venv/bin/activate
-python scripts/aoi_tool.py edit --k 3
+python scripts/aoi_tool.py edit
 ```
 
 Editor controls:
@@ -113,9 +145,15 @@ Editor controls:
 - Click/drag corner handle: resize it
 - `E`: draw a new ellipse
 - `R`: draw a new rectangle
+- `L`: draw a freehand lasso/polygon AOI. Hold the mouse button, trace the
+  object boundary, then release.
+- `]`: bring the selected AOI one layer forward
+- `[`: send the selected AOI one layer backward
+- `T`: move the selected AOI to the top layer
+- `B`: move the selected AOI to the bottom foreground layer
 - `Delete` / `Backspace`: delete the selected foreground AOI
 - `Tab`: select the next foreground AOI
-- `2`, `3`, `4`, `5`: reset the current image to that many total AOIs,
+- `2` through `9`: reset the current image to that many total AOIs,
   including background/rest
 - `A`: reset the current image to the default image-oriented AOIs
 - `+` / `-`: grow or shrink the selected AOI
@@ -128,5 +166,5 @@ After editing, regenerate the CSV, previews, and label maps without changing
 saved shapes:
 
 ```bash
-python scripts/aoi_tool.py batch --k 3
+python scripts/aoi_tool.py batch
 ```

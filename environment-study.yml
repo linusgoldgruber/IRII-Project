@@ -1,0 +1,10 @@
+name: irii-study
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - psychopy
+  - numpy
+  - pandas
+  - pillow
+  - pip
