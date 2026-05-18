@@ -2,7 +2,6 @@
 
 Edit values here to quickly tune experiment behavior without touching task logic.
 """
-github_key = "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"
 
 # Trial counts
 N_TRIALS_REAL = 60
@@ -13,13 +12,15 @@ MAX_MAIN_STIMULI = 80
 
 # Trial flow and timing
 CHECK_RATE = 0.15
-MIN_IMAGE_VIEW_S = 10.0
+MIN_IMAGE_VIEW_S = 8.0
+FIXATION_DURATION_S = 1.25
+CONTINUE_KEY_BUFFER_S = 0.5
 BREAK_AFTER_TRIALS = (20, 40)
 BREAK_MIN_S = 20.0
 
 # Alpha/prototype behavior
 ALPHA_SHOW_IMAGE_PROMPTS = True
-ALPHA_SHOW_STIMULUS_DEBUG = True
+ALPHA_SHOW_STIMULUS_DEBUG = False
 
 # Hidden key windows (seconds)
 QUIT_DOUBLE_PRESS_WINDOW_S = 1.0

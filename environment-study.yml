@@ -4,7 +4,8 @@ channels:
 dependencies:
   - python=3.10
   - psychopy
-  - numpy
+  - numpy<2
   - pandas
   - pillow
+  - matplotlib
   - pip

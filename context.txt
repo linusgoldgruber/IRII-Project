@@ -1,0 +1,168 @@
+# Predictive Probing: How Expectations Shape Gaze
+
+[Abstract](https://www.notion.so/Abstract-3553a64acf41801ba469f1c1ead4c236?pvs=21)
+
+My core-assumption: Aesthetic judgement emerges from prediction-guided visual sampling, which can be approximated with coarse gaze features (dwell time, fixation count, center bias, ..).
+
+Aesthetic judgment consists both of top-down (Itti, Koch & Niebur, 1998), as well as bottom-up  (Yarbus, 1967) processes. I want to test how expectations of aesthetics influence the expression of the top-down-processing though gaze.
+
+Davies et al. ([2017](https://pmc.ncbi.nlm.nih.gov/articles/PMC7141085/)) suggests that gaze patterns are only affected by *congruent* text prompts when images are ambiguous and lack semantic cues.
+
+### Experimental Design
+
+Participants will be primed with a description of an image. They will be able to continue with the press of a button on the keyboard.  It is theorised that they will now have an emotional expectation of the succeeding image. Following this, they will be presented with an image that contains AOIs.  The image will either be presumably strongly *congruent* with the aforementioned description or *incongruent*, and contain controlled ambiguity to allow for emotional prediction to fill the gap ([Garlichs, 2024](https://www.sciencedirect.com/science/article/pii/S258900422402145X)). They are prompted to examine the image until they feel like they have properly taken it in. After another press of a button, they will be asked a congruency question (“Did this image fit the preceding description?”) on a scale from one to five ([Jebb et al, 2021](https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2021.637547/full)). A randomized crossover-design will expose the whole selection of images. 
+
+### Definition of AOIs
+
+If gaze targets matter instead of just the movements alones, areas of interest (AOIs) need to be defined. This is an often underestimated endeavour that needs careful consideration to be reproducible and interpretable ([Hooge et al., 2025](https://doi.org/10.3758/s13428-024-02590-2)). Stimulus within the images presented to participants need to be sparse in AOIs to create the ambivalent visual landscape necessary for breaking expectations without leaving participants with an overly incongruent stimulus. [Hessels et al., 2016](https://link.springer.com/article/10.3758/s13428-015-0676-y#citeas) suggests in that case to make the AOI as big as possible.
+
+### Operationalisation
+
+The hypothesis is that congruent text-image pairings with correlate with efficient, stable scanpaths. These are defined as having i) a high first fixation duration, ii) a high average fixation time, iii) low AOI-switching count and iv) a low re-fixation count. Incongruent pairings will exhibit disrupted gaze and inefficient exploration patterns of the eyes, which is defined as exhibiting the inverse attributes.
+
+**Features Sources ([Francuz et al., 2018](https://doi.org/10.3389/fnhum.2018.00087))**
+
+- Helmut Leder et al. (2004): Modell der Kunstverarbeitung zeigt, dass längere Verarbeitung (u. a. Fixationen) mit ästhetischem Urteil zusammenhängt
+- Christoph Redies (2015): Eye-Tracking zeigt systematische Unterschiede in Blickmustern bei ästhetischer Wahrnehmung
+- Refixationen & visuelle Unsicherheit
+→ Holmqvist et al. (2011): Refixationen als Indikator für Unsicherheit / schwierige Verarbeitung
+
+| Condition | Expected gaze pattern | Feature changes (selection) |
+| --- | --- | --- |
+| Congruent | efficient, stable scanpaths | high fixation-time, low AOI switching count |
+| Incongruent, controlled ambiguity | disrupted / inefficient exploration | low fixation-time, high AOI switching count |
+
+### H1-H4 Hypotheses:
+
+*Perceived* congruency of lexical semantic framing of abstract artworks is *predictable* by modeling fixation-time and AOI switching count based on coarse infrared-based eye-tracking data.
+
+### **Design assumptions**
+
+- 30 participants
+- X trials per participant
+- Within-subject design
+- Outcome: 1–5 congruency rating (treated as continuous)
+
+### **Model specification**
+
+- Linear mixed model:`congruency ~ fixation_time + aoi_switch + (1 | ID)`
+- Random intercepts for participants
+- No random slopes
+
+### **Predictors**
+
+- fixation_time (main predictor)
+    - longer fixations indicate deeper cognitive processing ([**Rayner, 1978**](https://www.frontiersin.org/journals/computer-science/articles/10.3389/fcomp.2021.733531/full?utm_source=chatgpt.com#B223); [**Salthouse and Ellis, 1980**](https://www.frontiersin.org/journals/computer-science/articles/10.3389/fcomp.2021.733531/full?utm_source=chatgpt.com#B245))
+- aoi_switch (secondary predictor)
+- Predictors are **correlated** (r ≈ -0.5)
+
+### **Effect sizes (true β)**
+
+Because fixation duration varies widely (100–500 ms) while experimentally induced differences are comparatively small (often on the order of a few milliseconds), the resulting signal-to-noise ratio is low, implying small standardized effects (r ≈ .05–.15), which directly translates into regression coefficients in the same range for standardized predictors.
+
+- fixation_time: **+0.12**
+- aoi_switch: **−0.08**
+    - smaller, becuase: can increase for many reasons: curiosity, saliency, noise, strategy → **noisy proxy**
+- RStudio Power Simulation Code (open this), estimated **power**: **0.832**
+    
+    ```r
+    library(lme4)
+    library(lmerTest)
+    library(MASS)
+    
+    set.seed(123)
+    
+    # --- DESIGN ---
+    n_participants <- 30
+    n_trials <- 60
+    
+    # effects (slightly clearer, still realistic)
+    beta_fix <- 0.12
+    beta_aoi <- -0.08
+    
+    data_gen <- function(N_participants, N_trials) {
+      
+      ID <- rep(1:N_participants, each = N_trials)
+      n <- N_participants * N_trials
+      
+      # correlated predictors
+      Sigma <- matrix(c(
+        1.0, -0.5,
+        -0.5,  1.0
+      ), 2, 2)
+      
+      gaze <- MASS::mvrnorm(n, mu = c(0,0), Sigma = Sigma)
+      
+      fixation_time <- gaze[,1]
+      aoi_switch    <- gaze[,2]
+      
+      # random intercepts
+      ID_intercept <- rep(rnorm(N_participants, 0, 0.7), each = N_trials)
+      
+      # true model
+      y_det <- 3 +
+        beta_fix * fixation_time +
+        beta_aoi * aoi_switch +
+        ID_intercept
+      
+      # noise
+      congruency <- rnorm(n, mean = y_det, sd = 1.6)
+      
+      # lapses (10%)
+      lapse_idx <- sample(1:n, size = round(0.1 * n))
+      congruency[lapse_idx] <- runif(length(lapse_idx), 1, 5)
+      
+      # clamp
+      congruency <- pmin(pmax(congruency, 1), 5)
+      
+      data.frame(ID, fixation_time, aoi_switch, congruency)
+    }
+    
+    model_func <- function(data) {
+      
+      m <- lmer(congruency ~ fixation_time + aoi_switch + (1 | ID), data = data)
+      
+      p <- coef(summary(m))["fixation_time", "Pr(>|t|)"]
+      
+      ifelse(p < 0.05, 1, 0)
+    }
+    
+    # --- POWER ---
+    n_sim <- 500
+    
+    power <- mean(replicate(n_sim, model_func(data_gen(n_participants, n_trials))))
+    
+    cat("Estimated power:", power, "\n")
+    ```
+    
+
+### Experimental Setup
+
+| No. | Item | Descrption | Quellen |
+| --- | --- | --- | --- |
+|  1.  | Text Priming | A short description for the image is provided |  |
+| 2. | Image Viewing | The participant is presented with the described image and prompted to look at it until they feel like they have properly taken it in. | [**ArtEmis**](https://artemisdataset.org/#dataset) wird als kuratierte Stimulusbasis verwendet. |
+| 3. | Congruency Rating | On a scale from zero to five, participants will rate how well they think the image fits the aforementioned description (trial-wise subjective check) | https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2021.637547/full |
+
+Remaining Question:
+
+- What type of images should be presented?
+- What will the form of the “short description” of the image be like?
+- How will the prompt for the participants sound like exactly? Will it be delivered via text on the screen before it begins or orally by the experimenter?
+- Should I add a question to validate that they read the text? Or is it sufficient to see from the eye tracking that they read through it?
+- How do I generate the descriptions
+- Defining AOIs? Options:
+    - [DBSCAN Clustering Algorithm](https://pmc.ncbi.nlm.nih.gov/articles/PMC7141085)
+    - Manually Drawing boundaries around objects
+    - Define Areas with buffer zones (the further ways the smaller the value of the operator accounting for fixation of the specific AOI).
+- Center Bias als kontroll-feature einsetzen für visuelle aufmerksamkeit? Wie? → Judd et al. (2009): systematischer Center Bias in freier Bildbetrachtung
+- Should I include all four predictors weighted equally in the model?
+- primär: Skala, sekundär: Ground truth prediction, tertiär: beides über zeit (hypoethese: gewöhnung über zeit an unerwartete beschriebungen)
+- Do I always need a background AOI?
+
+---
+
+- when participants are asked to describe the last image, it has to be saved to that data, which image they were looking at!
+- improve image descriptions
+
+alle analysen in github repo

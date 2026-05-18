@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import csv
+import hashlib
+import json
 import math
 import random
 import re
+import sys
 import time
 from collections import Counter, defaultdict
 from datetime import datetime
@@ -19,6 +22,8 @@ N_TRIALS_TEST = cfg.N_TRIALS_TEST
 N_PRACTICE_TRIALS = cfg.N_PRACTICE_TRIALS
 CHECK_RATE = cfg.CHECK_RATE
 MIN_IMAGE_VIEW_S = cfg.MIN_IMAGE_VIEW_S
+FIXATION_DURATION_S = cfg.FIXATION_DURATION_S
+CONTINUE_KEY_BUFFER_S = cfg.CONTINUE_KEY_BUFFER_S
 BREAK_AFTER_TRIALS = cfg.BREAK_AFTER_TRIALS
 BREAK_MIN_S = cfg.BREAK_MIN_S
 QUIT_DOUBLE_PRESS_WINDOW_S = cfg.QUIT_DOUBLE_PRESS_WINDOW_S
@@ -41,9 +46,52 @@ PREPARED_METADATA_CONDITION_BY_LABEL = {
     "incongruent": "incongruent",
 }
 
+_ORIGINAL_TEXT_STIM = visual.TextStim
+_ORIGINAL_SLIDER = visual.Slider
+
+
+def bundled_sans_font_file() -> Path | None:
+    candidates = [
+        Path(sys.prefix) / "lib",
+        Path(__file__).resolve().parents[1] / ".venv" / "lib",
+    ]
+    for base in candidates:
+        for font_path in base.glob("python*/site-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSans.ttf"):
+            if font_path.exists():
+                return font_path
+    return None
+
+
+APP_FONT_FILE = bundled_sans_font_file()
+APP_FONT_NAME = "DejaVu Sans" if APP_FONT_FILE is not None else ""
+APP_FONT_FILES = (str(APP_FONT_FILE),) if APP_FONT_FILE is not None else ()
+
+
+def safe_text_stim(*args, **kwargs):
+    kwargs.setdefault("font", APP_FONT_NAME)
+    if APP_FONT_FILES:
+        kwargs.setdefault("fontFiles", APP_FONT_FILES)
+    return _ORIGINAL_TEXT_STIM(*args, **kwargs)
+
+
+def safe_slider(*args, **kwargs):
+    if not kwargs.get("font") or kwargs.get("font") == "Helvetica Bold":
+        kwargs["font"] = APP_FONT_NAME
+    return _ORIGINAL_SLIDER(*args, **kwargs)
+
+
+visual.TextStim = safe_text_stim
+visual.Slider = safe_slider
+
 
 class UserAbort(Exception):
     """Raised when participant requests abort (Q twice)."""
+
+
+def exit_without_iohub_import(code: int = 0) -> None:
+    """Exit without PsychoPy core.quit(), which imports ioHub/PyTables."""
+    core.logging.flush()
+    sys.exit(code)
 
 
 class QuitState:
@@ -51,44 +99,136 @@ class QuitState:
 
     def __init__(self, confirm_window_s: float = QUIT_DOUBLE_PRESS_WINDOW_S) -> None:
         self.confirm_window_s = confirm_window_s
-        self.first_q_session: float | None = None
+        self.first_q_monotonic: float | None = None
+        self.last_q_event_monotonic: float | None = None
+        self.abort_requested = False
 
     def process_keys(self, keys: list[str], now_session: float) -> None:
         if "q" not in keys:
             return
-        if self.first_q_session is None:
-            self.first_q_session = now_session
+        for key in keys:
+            if key == "q":
+                self.process_q_press()
+        self.raise_if_requested()
+
+    def process_q_press(self) -> None:
+        now_monotonic = time.monotonic()
+        if (
+            self.last_q_event_monotonic is not None
+            and now_monotonic - self.last_q_event_monotonic <= 0.08
+        ):
             return
-        if now_session - self.first_q_session <= self.confirm_window_s:
+        self.last_q_event_monotonic = now_monotonic
+        if self.first_q_monotonic is None:
+            self.first_q_monotonic = now_monotonic
+            return
+        if now_monotonic - self.first_q_monotonic <= self.confirm_window_s:
+            self.abort_requested = True
             raise UserAbort
-        self.first_q_session = now_session
+        self.first_q_monotonic = now_monotonic
+
+    def raise_if_requested(self) -> None:
+        if self.abort_requested:
+            raise UserAbort
 
     def active_message(self, now_session: float) -> str:
-        if self.first_q_session is None:
+        if self.first_q_monotonic is None:
             return ""
-        if now_session - self.first_q_session <= self.confirm_window_s:
+        if time.monotonic() - self.first_q_monotonic <= self.confirm_window_s:
             return "" #"Press Q again to quit"
-        self.first_q_session = None
+        self.first_q_monotonic = None
         return ""
 
 
-def get_run_info() -> tuple[str, str, str, int | None]:
+def install_emergency_quit_handler(win: visual.Window, quit_state: QuitState) -> None:
+    """Register a window-level Q handler so double-Q is not tied to per-screen polling."""
+    key_module = event.pyglet.window.key
+
+    def on_key_press(symbol: int, modifiers: int) -> None:
+        if symbol == key_module.Q:
+            try:
+                quit_state.process_q_press()
+            except UserAbort:
+                pass
+
+    win.winHandle.push_handlers(on_key_press=on_key_press)
+
+
+def key_state_is_pressed(key_state: object | None, symbol: int) -> bool:
+    if key_state is None:
+        return False
+    try:
+        return bool(key_state[symbol])
+    except Exception:
+        return False
+
+
+class ContinueKeyGate:
+    """Accept only a fresh key press after release and a short screen-entry buffer."""
+
+    def __init__(
+        self,
+        key_name: str,
+        key_state: object | None,
+        key_symbol: int | None,
+        onset_session: float,
+        buffer_s: float = CONTINUE_KEY_BUFFER_S,
+    ) -> None:
+        self.key_name = key_name
+        self.key_state = key_state
+        self.key_symbol = key_symbol
+        self.onset_session = onset_session
+        self.buffer_s = buffer_s
+        self.released_since_onset = not self.is_down()
+        self.released_session = onset_session if self.released_since_onset else None
+
+    def is_down(self) -> bool:
+        if self.key_symbol is None:
+            return False
+        return key_state_is_pressed(self.key_state, self.key_symbol)
+
+    def accepts(self, keys: list[str], now_session: float) -> bool:
+        if self.key_state is not None and not self.released_since_onset:
+            if not self.is_down():
+                self.released_since_onset = True
+                self.released_session = now_session
+            return False
+        ready_session = max(
+            self.onset_session,
+            self.released_session if self.released_session is not None else self.onset_session,
+        )
+        if now_session - ready_session < self.buffer_s:
+            return False
+        if self.key_name not in keys:
+            return False
+        return True
+
+
+def get_run_info() -> tuple[str, str, str, str, int | None]:
     dlg = gui.Dlg(title="Congruency Rating Study")
     dlg.addText("Choose run mode and participant info.")
-    dlg.addField("mode", choices=["real", "test", "rg"], initial="real")
+    dlg.addField("mode", choices=["real", "test", "rg", "check_images"], initial="real")
+    dlg.addField("language", choices=["de", "en"], initial="de")
     dlg.addField("participant", "")
     dlg.addField("session", "001")
     dlg.addField("main_trials (blank=mode default)", "")
     values = dlg.show()
     if not dlg.OK or values is None:
-        core.quit()
+        exit_without_iohub_import()
 
     mode = str(values[0]).strip().lower() or "real"
-    if mode not in {"real", "test", "rg"}:
+    if mode not in {"real", "test", "rg", "check_images"}:
         mode = "real"
-    participant = str(values[1]).strip() or "test"
-    session = str(values[2]).strip() or "001"
-    trials_text = str(values[3]).strip()
+    language = str(values[1]).strip().lower() or "de"
+    if language not in {"de", "en"}:
+        language = "de"
+    participant = str(values[2]).strip()
+    session = str(values[3]).strip()
+    if mode in {"real", "rg"} and (not participant or not session):
+        raise ValueError("Participant and session are required for real/rg runs.")
+    participant = participant or "test"
+    session = session or "001"
+    trials_text = str(values[4]).strip()
     n_main_trials_override: int | None = None
     if trials_text:
         try:
@@ -97,16 +237,17 @@ def get_run_info() -> tuple[str, str, str, int | None]:
                 n_main_trials_override = parsed
         except ValueError:
             n_main_trials_override = None
-    return mode, participant, session, n_main_trials_override
+    return mode, language, participant, session, n_main_trials_override
 
 
-def load_trials(path: Path) -> list[dict[str, str]]:
+def load_trials(path: Path, language: str = "de") -> list[dict[str, str]]:
     if not path.exists():
         raise FileNotFoundError(f"Missing trial file: {path}")
 
     with path.open("r", encoding="utf-8", newline="") as f:
         reader = csv.DictReader(f)
-        required = {"trial_id", "description", "image_file"}
+        description_field = "description_en" if language == "en" else "description"
+        required = {"trial_id", description_field, "image_file"}
         missing = required - set(reader.fieldnames or [])
         if missing:
             raise ValueError(
@@ -115,7 +256,8 @@ def load_trials(path: Path) -> list[dict[str, str]]:
         rows = [
             {
                 "trial_id": (row.get("trial_id") or "").strip(),
-                "description": (row.get("description") or "").strip(),
+                "language": language,
+                "description": (row.get(description_field) or "").strip(),
                 "image_file": (row.get("image_file") or "").strip(),
             }
             for row in reader
@@ -127,7 +269,7 @@ def load_trials(path: Path) -> list[dict[str, str]]:
     return rows
 
 
-def load_prepared_trials(path: Path) -> list[dict[str, str]]:
+def load_prepared_trials(path: Path, language: str = "de") -> list[dict[str, str]]:
     if not path.exists():
         raise FileNotFoundError(f"Missing prepared stimulus file: {path}")
 
@@ -135,14 +277,17 @@ def load_prepared_trials(path: Path) -> list[dict[str, str]]:
         reader = csv.DictReader(f)
         fieldnames = set(reader.fieldnames or [])
         image_field = "image_file" if "image_file" in fieldnames else "new_filename" if "new_filename" in fieldnames else ""
+        condition_fields = {
+            "congruent": "condition_congruent_en" if language == "en" else "condition_congruent",
+            "ambiguous": "condition_semi_congruent_en" if language == "en" else "condition_semi_congruent",
+            "incongruent": "condition_incongruent_en" if language == "en" else "condition_incongruent",
+        }
         required = {
             "stimulus_id",
             "original_filename",
             "original_relative_path",
             "original_style_folder",
-            "condition_congruent",
-            "condition_semi_congruent",
-            "condition_incongruent",
+            *condition_fields.values(),
         }
         missing = required - fieldnames
         if not image_field:
@@ -163,9 +308,9 @@ def load_prepared_trials(path: Path) -> list[dict[str, str]]:
             original_filename = (row.get("original_filename") or "").strip()
             original_relative_path = (row.get("original_relative_path") or "").strip()
             original_style_folder = (row.get("original_style_folder") or "").strip()
-            congruent = (row.get("condition_congruent") or "").strip()
-            ambiguous = (row.get("condition_semi_congruent") or "").strip()
-            incongruent = (row.get("condition_incongruent") or "").strip()
+            congruent = (row.get(condition_fields["congruent"]) or "").strip()
+            ambiguous = (row.get(condition_fields["ambiguous"]) or "").strip()
+            incongruent = (row.get(condition_fields["incongruent"]) or "").strip()
             needs_review = (row.get("needs_human_review") or "").strip().lower()
 
             if not stimulus_id or not image_file:
@@ -178,6 +323,7 @@ def load_prepared_trials(path: Path) -> list[dict[str, str]]:
             rows.append(
                 {
                     "stimulus_id": stimulus_id,
+                    "language": language,
                     "image_file": image_file,
                     "original_filename": original_filename,
                     "original_relative_path": original_relative_path,
@@ -210,24 +356,85 @@ def build_condition_pool(n_trials: int) -> list[str]:
     return pool
 
 
+def participant_counterbalance_offset(participant: str) -> int:
+    numbers = re.findall(r"\d+", participant)
+    if numbers:
+        return (int(numbers[-1]) - 1) % len(PREPARED_DESCRIPTION_CONDITIONS)
+    digest = hashlib.sha256(participant.strip().lower().encode("utf-8")).hexdigest()
+    return int(digest[:8], 16) % len(PREPARED_DESCRIPTION_CONDITIONS)
+
+
+def stimulus_condition_index(stimulus_id: str) -> int:
+    numbers = re.findall(r"\d+", stimulus_id)
+    if numbers:
+        return (int(numbers[-1]) - 1) % len(PREPARED_DESCRIPTION_CONDITIONS)
+    digest = hashlib.sha256(stimulus_id.strip().lower().encode("utf-8")).hexdigest()
+    return int(digest[:8], 16) % len(PREPARED_DESCRIPTION_CONDITIONS)
+
+
+def preferred_condition_for_stimulus(stimulus_id: str, counterbalance_offset: int) -> str:
+    labels = PREPARED_DESCRIPTION_CONDITIONS
+    return labels[(stimulus_condition_index(stimulus_id) + counterbalance_offset) % len(labels)]
+
+
+def condition_target_counts(n_trials: int, counterbalance_offset: int) -> Counter[str]:
+    labels = list(PREPARED_DESCRIPTION_CONDITIONS)
+    base, remainder = divmod(n_trials, len(labels))
+    counts: Counter[str] = Counter({label: base for label in labels})
+    for i in range(remainder):
+        counts[labels[(counterbalance_offset + i) % len(labels)]] += 1
+    return counts
+
+
+def assign_counterbalanced_conditions(
+    selected_stimuli: list[dict[str, str]],
+    counterbalance_offset: int,
+) -> list[tuple[dict[str, str], str, str]]:
+    remaining = condition_target_counts(len(selected_stimuli), counterbalance_offset)
+    labels = list(PREPARED_DESCRIPTION_CONDITIONS)
+    assignments: list[tuple[dict[str, str], str, str]] = []
+
+    for stimulus in selected_stimuli:
+        preferred = preferred_condition_for_stimulus(stimulus["stimulus_id"], counterbalance_offset)
+        preferred_idx = labels.index(preferred)
+        condition = preferred
+        if remaining[condition] <= 0:
+            for step in range(1, len(labels)):
+                candidate = labels[(preferred_idx + step) % len(labels)]
+                if remaining[candidate] > 0:
+                    condition = candidate
+                    break
+        remaining[condition] -= 1
+        assignments.append((stimulus, condition, preferred))
+
+    return assignments
+
+
 def build_prepared_trial_sequence(
     prepared_trials: list[dict[str, str]],
     n_trials: int,
+    counterbalance_offset: int,
 ) -> list[dict[str, str]]:
     if n_trials > len(prepared_trials):
         raise ValueError(
             f"Requested {n_trials} main trials, but only {len(prepared_trials)} prepared stimuli are available."
         )
     selected_stimuli = random.sample(prepared_trials, n_trials)
-    condition_pool = build_condition_pool(n_trials)
+    random.shuffle(selected_stimuli)
 
     sequence: list[dict[str, str]] = []
-    for stimulus, condition in zip(selected_stimuli, condition_pool):
+    for stimulus, condition, preferred_condition in assign_counterbalanced_conditions(
+        selected_stimuli,
+        counterbalance_offset,
+    ):
         metadata_condition = PREPARED_METADATA_CONDITION_BY_LABEL[condition]
         sequence.append(
             {
                 "stimulus_id": stimulus["stimulus_id"],
                 "trial_id": stimulus["stimulus_id"],
+                "language": stimulus.get("language", ""),
+                "counterbalance_offset": str(counterbalance_offset),
+                "preferred_description_condition": preferred_condition,
                 "description_condition": condition,
                 "metadata_condition": metadata_condition,
                 "description": stimulus[f"description_{condition}"],
@@ -272,6 +479,7 @@ def build_run_output_layout(
         "practice_gaze_csv": run_dir / "practice_gaze.csv",
         "main_sequence_csv": run_dir / "main_sequence.csv",
         "qc_png": run_dir / "qc.png",
+        "run_metadata_json": run_dir / "run_metadata.json",
         "participant_index_csv": output_root / "participants_latest.csv",
     }
 
@@ -308,10 +516,17 @@ def build_trial_sequence(base_trials: list[dict[str, str]], n_trials: int) -> li
     return sequence
 
 
-def choose_check_trials(n_trials: int, rate: float) -> set[int]:
-    n_checks = max(1, int(round(n_trials * rate)))
-    n_checks = min(n_checks, n_trials)
-    return set(random.sample(range(1, n_trials + 1), n_checks))
+def choose_check_trials(trials: list[dict[str, str]], rate: float) -> set[int]:
+    eligible_indices = [
+        idx
+        for idx, trial in enumerate(trials, start=1)
+        if trial.get("description_condition") != "congruent"
+    ]
+    if not eligible_indices:
+        return set()
+    n_checks = max(1, int(round(len(trials) * rate)))
+    n_checks = min(n_checks, len(eligible_indices))
+    return set(random.sample(eligible_indices, n_checks))
 
 
 def append_rows(csv_path: Path, rows: list[dict[str, str | int | float]], fieldnames: list[str]) -> None:
@@ -333,6 +548,13 @@ def write_rows(csv_path: Path, rows: list[dict[str, str | int | float]], fieldna
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
+
+
+def write_json(path: Path, data: dict[str, str | int | float | bool]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, sort_keys=True)
+        f.write("\n")
 
 
 def resolve_image_path(image_dir: Path, image_file: str) -> Path | None:
@@ -451,6 +673,7 @@ def build_latest_participant_row(
     participant_dir: Path,
     run_dir: Path,
     mode: str,
+    language: str,
     session: str,
     run_id: str,
     run_started_at: str,
@@ -458,11 +681,13 @@ def build_latest_participant_row(
     run_duration_s: float,
     run_status: str,
     run_error: str,
+    random_seed: int,
     main_output_csv: Path,
     main_gaze_csv: Path,
     practice_output_csv: Path,
     practice_gaze_csv: Path,
     main_sequence_csv: Path,
+    run_metadata_json: Path,
     qc_png: Path | None,
     n_main_trials_expected: int,
     n_practice_trials_expected: int,
@@ -483,12 +708,14 @@ def build_latest_participant_row(
         "run_folder": str(run_dir.relative_to(project_root)),
         "run_id": run_id,
         "mode": mode,
+        "language": language,
         "session": session,
         "status": run_status,
         "error_message": run_error,
         "run_started_at": run_started_at,
         "run_finished_at": run_finished_at,
         "run_duration_s": round(run_duration_s, 3),
+        "random_seed": random_seed,
         "n_main_trials_expected": n_main_trials_expected,
         "n_main_trials_recorded": len(main_rows),
         "n_practice_trials_expected": n_practice_trials_expected,
@@ -501,6 +728,7 @@ def build_latest_participant_row(
         "practice_trials_csv": str(practice_output_csv.relative_to(project_root)),
         "practice_gaze_csv": str(practice_gaze_csv.relative_to(project_root)),
         "main_sequence_csv": str(main_sequence_csv.relative_to(project_root)),
+        "run_metadata_json": str(run_metadata_json.relative_to(project_root)),
         "qc_png": str(qc_png.relative_to(project_root)) if qc_png and qc_png.exists() else "",
         "main_stimulus_source": str(main_trial_source.relative_to(project_root)),
         "practice_stimulus_source": str(practice_trial_source.relative_to(project_root)),
@@ -780,6 +1008,12 @@ def resample_cursor_samples_fixed_hz(
     trial_id: str,
     image_file: str,
     target_hz: float,
+    screen_width_px: int,
+    screen_height_px: int,
+    image_stim_width_units: float,
+    image_stim_height_units: float,
+    image_stim_center_x_units: float,
+    image_stim_center_y_units: float,
 ) -> list[dict[str, str | int | float]]:
     duration = max(0.0, offset_session - onset_session)
     if target_hz <= 0:
@@ -791,6 +1025,9 @@ def resample_cursor_samples_fixed_hz(
     raw_points = sorted(raw_points, key=lambda p: p[0])
     rows: list[dict[str, str | int | float]] = []
     j = 0
+    previous_x: float | None = None
+    previous_y: float | None = None
+    cumulative_movement_px = 0.0
 
     for i in range(n_samples):
         target_session = onset_session + (i / target_hz)
@@ -811,6 +1048,14 @@ def resample_cursor_samples_fixed_hz(
         else:
             _, _, x, y = raw_points[-1]
 
+        if previous_x is None or previous_y is None:
+            movement_px = 0.0
+        else:
+            movement_px = math.hypot(float(x) - previous_x, float(y) - previous_y)
+        cumulative_movement_px += movement_px
+        previous_x = float(x)
+        previous_y = float(y)
+
         target_unix = onset_unix + (target_session - onset_session)
         rows.append(
             {
@@ -826,6 +1071,14 @@ def resample_cursor_samples_fixed_hz(
                 "sample_from_image_onset_s": round(target_session - onset_session, 6),
                 "gaze_x_pix": round(float(x), 3),
                 "gaze_y_pix": round(float(y), 3),
+                "gaze_movement_px": round(float(movement_px), 3),
+                "gaze_movement_cumulative_px": round(float(cumulative_movement_px), 3),
+                "screen_width_px": screen_width_px,
+                "screen_height_px": screen_height_px,
+                "image_stim_width_units": round(image_stim_width_units, 6),
+                "image_stim_height_units": round(image_stim_height_units, 6),
+                "image_stim_center_x_units": round(image_stim_center_x_units, 6),
+                "image_stim_center_y_units": round(image_stim_center_y_units, 6),
                 "units": "pix",
             }
         )
@@ -841,12 +1094,16 @@ def wait_for_continue(
     quit_hint: visual.TextStim,
     progress_stim: visual.TextStim | None = None,
     continue_key: str = "space",
+    key_state: object | None = None,
 ) -> tuple[float, float, float, float, float]:
     event.clearEvents(eventType="keyboard")
     onset_session = session_clock.getTime()
     onset_unix = time.time()
+    continue_symbol = event.pyglet.window.key.SPACE if continue_key == "space" else None
+    continue_gate = ContinueKeyGate(continue_key, key_state, continue_symbol, onset_session)
 
     while True:
+        quit_state.raise_if_requested()
         now_session = session_clock.getTime()
         quit_hint.text = quit_state.active_message(now_session)
 
@@ -860,11 +1117,55 @@ def wait_for_continue(
         keys = event.getKeys(keyList=[continue_key, "q"])
         now_session = session_clock.getTime()
         quit_state.process_keys(keys, now_session)
-        if continue_key in keys:
+        if continue_gate.accepts(keys, now_session):
             offset_session = session_clock.getTime()
             offset_unix = time.time()
             duration = offset_session - onset_session
             return duration, onset_session, offset_session, onset_unix, offset_unix
+
+
+def show_fixation_cross(
+    win: visual.Window,
+    session_clock: core.MonotonicClock,
+    quit_state: QuitState,
+    quit_hint: visual.TextStim,
+    progress_stim: visual.TextStim,
+    duration_s: float = FIXATION_DURATION_S,
+) -> tuple[float, float, float, float, float]:
+    fixation_stim = visual.TextStim(
+        win,
+        text="+",
+        color="white",
+        height=0.09,
+        pos=(0, 0),
+    )
+    event.clearEvents(eventType="keyboard")
+    onset_session = session_clock.getTime()
+    onset_unix = time.time()
+
+    while True:
+        quit_state.raise_if_requested()
+        now_session = session_clock.getTime()
+        quit_hint.text = quit_state.active_message(now_session)
+        progress_stim.draw()
+        fixation_stim.draw()
+        if quit_hint.text:
+            quit_hint.draw()
+        win.flip()
+
+        keys = event.getKeys(keyList=["q"])
+        now_session = session_clock.getTime()
+        quit_state.process_keys(keys, now_session)
+        if now_session - onset_session >= duration_s:
+            offset_session = session_clock.getTime()
+            offset_unix = time.time()
+            return (
+                offset_session - onset_session,
+                onset_session,
+                offset_session,
+                onset_unix,
+                offset_unix,
+            )
 
 
 def show_image_until_continue(
@@ -888,38 +1189,36 @@ def show_image_until_continue(
     allow_fast_skip: bool = False,
     record_cursor_samples: bool = True,
     continue_key: str = "space",
+    key_state: object | None = None,
 ) -> tuple[float, float, float, float, float, list[dict[str, str | int | float]]]:
     event.clearEvents(eventType="keyboard")
     onset_session = session_clock.getTime()
     onset_unix = time.time()
+    continue_symbol = event.pyglet.window.key.SPACE if continue_key == "space" else None
+    continue_gate = ContinueKeyGate(continue_key, key_state, continue_symbol, onset_session)
 
     if image_stim is not None:
         draw_stim: visual.BaseVisualStim = image_stim
+        image_stim_width_units = float(image_stim.size[0])
+        image_stim_height_units = float(image_stim.size[1])
+        image_stim_center_x_units = float(image_stim.pos[0])
+        image_stim_center_y_units = float(image_stim.pos[1])
     else:
         fallback_text.text = (
             "Image file missing:\n"
-            f"{image_path.name}\n\n"
-            "Press SPACE to continue."
+            f"{image_path.name}"
         )
         draw_stim = fallback_text
+        image_stim_width_units, image_stim_height_units = (
+            fit_image_size_height_units(image_path)
+            if image_path.exists()
+            else (cfg.IMAGE_MAX_WIDTH_HEIGHT_UNITS, cfg.IMAGE_MAX_HEIGHT_HEIGHT_UNITS)
+        )
+        image_stim_center_x_units = 0.0
+        image_stim_center_y_units = 0.0
 
-    min_wait_stim = visual.TextStim(
-        win,
-        text="",
-        color="white",
-        height=0.03,
-        pos=(0, -0.42),
-    )
-    alpha_debug_stim = visual.TextStim(
-        win,
-        text="",
-        color="#ffd166",
-        height=0.025,
-        pos=(0.62, 0.46),
-        alignText="right",
-        anchorHoriz="right",
-        wrapWidth=0.7,
-    )
+    screen_width_px = int(win.size[0])
+    screen_height_px = int(win.size[1])
 
     raw_cursor_points: list[tuple[float, float, float, float]] = []
     first_f_session: float | None = None
@@ -952,33 +1251,23 @@ def show_image_until_continue(
                 trial_id=trial_id,
                 image_file=image_file,
                 target_hz=cfg.CURSOR_TARGET_HZ,
+                screen_width_px=screen_width_px,
+                screen_height_px=screen_height_px,
+                image_stim_width_units=image_stim_width_units,
+                image_stim_height_units=image_stim_height_units,
+                image_stim_center_x_units=image_stim_center_x_units,
+                image_stim_center_y_units=image_stim_center_y_units,
             )
         else:
             sample_rows = []
         return duration, onset_session, offset_session, onset_unix, offset_unix, sample_rows
 
     while True:
+        quit_state.raise_if_requested()
         now_session = session_clock.getTime()
-        elapsed = now_session - onset_session
-        wait_left = max(0.0, min_view_s - elapsed)
-
-        if wait_left > 0:
-            if show_min_view_countdown or ALPHA_SHOW_IMAGE_PROMPTS:
-                min_wait_stim.text = f"Keep viewing for {wait_left:0.1f}s before continuing"
-            else:
-                min_wait_stim.text = ""
-        else:
-            min_wait_stim.text = "Press SPACE to continue"
-
         quit_hint.text = quit_state.active_message(now_session)
-        if ALPHA_SHOW_STIMULUS_DEBUG:
-            alpha_debug_stim.text = f"{trial_index}: {image_file}"
 
-        progress_stim.draw()
         draw_stim.draw()
-        min_wait_stim.draw()
-        if ALPHA_SHOW_STIMULUS_DEBUG:
-            alpha_debug_stim.draw()
         if quit_hint.text:
             quit_hint.draw()
         win.flip()
@@ -1006,7 +1295,7 @@ def show_image_until_continue(
                     return finalize_return(session_clock.getTime(), time.time())
                 first_f_session = now_session
 
-        if continue_key in keys and (now_session - onset_session) >= min_view_s:
+        if (now_session - onset_session) >= min_view_s and continue_gate.accepts(keys, now_session):
             return finalize_return(session_clock.getTime(), time.time())
 
 
@@ -1027,6 +1316,12 @@ def collect_rating(
     event.clearEvents(eventType="keyboard")
     onset_session = session_clock.getTime()
     onset_unix = time.time()
+    confirm_gate = ContinueKeyGate(
+        "space",
+        key_state,
+        event.pyglet.window.key.SPACE,
+        onset_session,
+    )
     rating_value = RATING_DEFAULT
     slider.markerPos = rating_value
     slider.rating = rating_value
@@ -1035,6 +1330,7 @@ def collect_rating(
     last_session = onset_session
 
     while True:
+        quit_state.raise_if_requested()
         now_session = session_clock.getTime()
         dt = min(max(now_session - last_session, 0.0), 0.05)
         last_session = now_session
@@ -1076,7 +1372,7 @@ def collect_rating(
             quit_hint.draw()
         win.flip()
 
-        if "space" in keys:
+        if confirm_gate.accepts(keys, now_session):
             offset_session = session_clock.getTime()
             offset_unix = time.time()
             return (
@@ -1096,6 +1392,7 @@ def collect_mismatch_check(
     quit_hint: visual.TextStim,
     progress_stim: visual.TextStim,
     session_clock: core.MonotonicClock,
+    language: str = "de",
 ) -> tuple[str, float, float, float, float, float]:
     event.clearEvents(eventType="keyboard")
     onset_session = session_clock.getTime()
@@ -1111,7 +1408,11 @@ def collect_mismatch_check(
     )
     instruction_stim = visual.TextStim(
         win,
-        text="Type your answer and press ENTER to confirm.",
+        text=(
+            "Type your answer and press ENTER to confirm."
+            if language == "en"
+            else "Tippe deine Antwort und bestätige mit ENTER."
+        ),
         color="#cccccc",
         height=0.03,
         pos=(0, -0.35),
@@ -1126,58 +1427,74 @@ def collect_mismatch_check(
     )
 
     text_chars: list[str] = []
+    typed_text: list[str] = []
 
-    while True:
-        now_session = session_clock.getTime()
-        quit_hint.text = quit_state.active_message(now_session)
+    def on_text(text: str) -> None:
+        for char in text:
+            if char not in {"\r", "\n"}:
+                typed_text.append(char)
 
-        progress_stim.draw()
-        question_stim.draw()
-        answer_stim.text = "".join(text_chars) if text_chars else "_"
-        answer_stim.draw()
-        instruction_stim.draw()
-        if quit_hint.text:
-            quit_hint.draw()
-        win.flip()
+    win.winHandle.push_handlers(on_text=on_text)
 
-        keys = event.getKeys()
-        if not keys:
-            continue
+    try:
+        while True:
+            quit_state.raise_if_requested()
+            now_session = session_clock.getTime()
+            quit_hint.text = quit_state.active_message(now_session)
 
-        now_session = session_clock.getTime()
-        quit_state.process_keys(keys, now_session)
+            progress_stim.draw()
+            question_stim.draw()
+            answer_stim.text = "".join(text_chars) if text_chars else "_"
+            answer_stim.draw()
+            instruction_stim.draw()
+            if quit_hint.text:
+                quit_hint.draw()
+            win.flip()
 
-        for key in keys:
-            if key == "return":
-                answer = "".join(text_chars).strip()
-                if answer:
-                    offset_session = session_clock.getTime()
-                    offset_unix = time.time()
-                    return (
-                        answer,
-                        offset_session - onset_session,
-                        onset_session,
-                        offset_session,
-                        onset_unix,
-                        offset_unix,
-                    )
-            elif key == "backspace":
-                if text_chars:
-                    text_chars.pop()
-            elif key == "space":
-                text_chars.append(" ")
-            elif key == "minus":
-                text_chars.append("-")
-            elif key == "period":
-                text_chars.append(".")
-            elif key == "comma":
-                text_chars.append(",")
-            elif key == "apostrophe":
-                text_chars.append("'")
-            elif key == "slash":
-                text_chars.append("/")
-            elif len(key) == 1:
-                text_chars.append(key)
+            keys = event.getKeys()
+            appended_text_event = bool(typed_text)
+            if typed_text:
+                text_chars.extend(typed_text)
+                typed_text.clear()
+            if not keys:
+                continue
+
+            now_session = session_clock.getTime()
+            quit_state.process_keys(keys, now_session)
+
+            for key in keys:
+                if key == "return":
+                    answer = "".join(text_chars).strip()
+                    if answer:
+                        offset_session = session_clock.getTime()
+                        offset_unix = time.time()
+                        return (
+                            answer,
+                            offset_session - onset_session,
+                            onset_session,
+                            offset_session,
+                            onset_unix,
+                            offset_unix,
+                        )
+                elif key == "backspace":
+                    if text_chars:
+                        text_chars.pop()
+                elif not appended_text_event:
+                    key_text = {
+                        "space": " ",
+                        "comma": ",",
+                        "period": ".",
+                        "minus": "-",
+                        "slash": "/",
+                        "apostrophe": "'",
+                        "semicolon": ";",
+                    }.get(key)
+                    if key_text is not None:
+                        text_chars.append(key_text)
+                    elif len(key) == 1:
+                        text_chars.append(key)
+    finally:
+        win.winHandle.remove_handlers(on_text=on_text)
 
 
 def run_break(
@@ -1188,9 +1505,16 @@ def run_break(
     quit_state: QuitState,
     quit_hint: visual.TextStim,
     allow_fast_skip: bool = False,
+    key_state: object | None = None,
 ) -> None:
     event.clearEvents(eventType="keyboard")
     break_start = session_clock.getTime()
+    continue_gate = ContinueKeyGate(
+        "space",
+        key_state,
+        event.pyglet.window.key.SPACE,
+        break_start,
+    )
     first_f_session: float | None = None
 
     break_text = visual.TextStim(
@@ -1202,6 +1526,7 @@ def run_break(
     )
 
     while True:
+        quit_state.raise_if_requested()
         now_session = session_clock.getTime()
         elapsed = now_session - break_start
         remaining = max(0.0, BREAK_MIN_S - elapsed)
@@ -1239,7 +1564,7 @@ def run_break(
                     return
                 first_f_session = now_session
 
-        if "space" in keys and remaining <= 0:
+        if remaining <= 0 and continue_gate.accepts(keys, now_session):
             return
 
 
@@ -1250,9 +1575,18 @@ def wait_for_space_screen(
     quit_hint: visual.TextStim,
     text_stim: visual.TextStim,
     image_stim: visual.ImageStim | None = None,
+    key_state: object | None = None,
 ) -> None:
     event.clearEvents(eventType="keyboard")
+    onset_session = session_clock.getTime()
+    continue_gate = ContinueKeyGate(
+        "space",
+        key_state,
+        event.pyglet.window.key.SPACE,
+        onset_session,
+    )
     while True:
+        quit_state.raise_if_requested()
         now_session = session_clock.getTime()
         quit_hint.text = quit_state.active_message(now_session)
         if image_stim is not None:
@@ -1264,8 +1598,125 @@ def wait_for_space_screen(
         keys = event.getKeys(keyList=["space", "q"])
         now_session = session_clock.getTime()
         quit_state.process_keys(keys, now_session)
-        if "space" in keys:
+        if continue_gate.accepts(keys, now_session):
             return
+
+
+def list_supported_images(image_dir: Path) -> list[Path]:
+    supported_suffixes = {".jpg", ".jpeg", ".png", ".ppm", ".bmp", ".tif", ".tiff"}
+    if not image_dir.exists():
+        raise FileNotFoundError(f"Missing image directory: {image_dir}")
+    return sorted(
+        (
+            path
+            for path in image_dir.iterdir()
+            if path.is_file() and path.suffix.lower() in supported_suffixes
+        ),
+        key=lambda path: path.name.lower(),
+    )
+
+
+def run_check_images_mode(project_root: Path) -> None:
+    image_dir = project_root / "input" / "main" / "images"
+    image_paths = list_supported_images(image_dir)
+    if not image_paths:
+        raise ValueError(f"No supported image files found in {image_dir}.")
+
+    session_clock = core.MonotonicClock()
+    quit_state = QuitState()
+    win = visual.Window(
+        size=cfg.WINDOW_SIZE,
+        fullscr=cfg.FULLSCREEN,
+        screen=cfg.SCREEN_INDEX,
+        color=cfg.WINDOW_COLOR,
+        units=cfg.WINDOW_UNITS,
+    )
+    mouse = event.Mouse(win=win)
+    mouse.setVisible(True)
+    quit_hint = visual.TextStim(
+        win,
+        text="",
+        color="#ffd166",
+        height=0.03,
+        pos=(0, 0.45),
+    )
+    install_emergency_quit_handler(win, quit_state)
+    label_stim = visual.TextStim(
+        win,
+        text="",
+        color="white",
+        height=0.028,
+        pos=(-0.73, 0.46),
+        wrapWidth=0.9,
+        alignText="left",
+        anchorHoriz="left",
+    )
+    controls_stim = visual.TextStim(
+        win,
+        text="Click, SPACE, or RIGHT = next    LEFT = previous    Q twice = quit",
+        color="#cccccc",
+        height=0.024,
+        pos=(0, -0.47),
+        wrapWidth=1.55,
+    )
+    fallback_stim = visual.TextStim(
+        win,
+        text="",
+        color="white",
+        height=0.04,
+        wrapWidth=1.35,
+    )
+
+    index = 0
+    image_stim: visual.ImageStim | None = None
+    loaded_path: Path | None = None
+    previous_mouse_down = False
+    event.clearEvents(eventType="keyboard")
+
+    try:
+        while True:
+            quit_state.raise_if_requested()
+            mouse_down = any(mouse.getPressed())
+            mouse_clicked = mouse_down and not previous_mouse_down
+            previous_mouse_down = mouse_down
+
+            image_path = image_paths[index]
+            if loaded_path != image_path:
+                loaded_path = image_path
+                try:
+                    image_stim = create_image_stim(win, image_path)
+                except Exception as exc:
+                    image_stim = None
+                    fallback_stim.text = f"Could not load image:\n{image_path.name}\n\n{exc}"
+
+            now_session = session_clock.getTime()
+            quit_hint.text = quit_state.active_message(now_session)
+            label_stim.text = f"{index + 1}/{len(image_paths)}  {image_path.name}"
+
+            if image_stim is not None:
+                image_stim.draw()
+            else:
+                fallback_stim.draw()
+            label_stim.draw()
+            controls_stim.draw()
+            if quit_hint.text:
+                quit_hint.draw()
+            win.flip()
+
+            keys = event.getKeys(keyList=["space", "right", "left", "q", "escape"])
+            now_session = session_clock.getTime()
+            quit_state.process_keys(keys, now_session)
+            if "escape" in keys:
+                return
+            if "left" in keys:
+                index = max(0, index - 1)
+            elif "space" in keys or "right" in keys or mouse_clicked:
+                index += 1
+                if index >= len(image_paths):
+                    return
+                mouse.clickReset()
+    finally:
+        win.close()
 
 
 def run_phase(
@@ -1294,6 +1745,29 @@ def run_phase(
     show_min_view_countdown: bool = True,
     allow_fast_skip: bool = False,
 ) -> None:
+    phase_language = (trials[0].get("language") if trials else "de") or "de"
+    description_label = "Description" if phase_language == "en" else "Beschreibung"
+    rating_question = (
+        "How well do you feel the description fits the image you were presented with?"
+        if phase_language == "en"
+        else "Wie gut passt die Beschreibung zu dem Bild, das du gesehen hast?"
+    )
+    rating_controls = (
+        "Hold LEFT/RIGHT to move the slider. Press SPACE to confirm."
+        if phase_language == "en"
+        else "Mit LINKS/RECHTS den Regler bewegen. Mit SPACE bestätigen."
+    )
+    rating_labels = (
+        ["Doesn't fit at all", "", "", "", "Fits perfectly"]
+        if phase_language == "en"
+        else ["Passt gar nicht", "", "", "", "Passt perfekt"]
+    )
+    confirm_text = "SPACE = Confirm" if phase_language == "en" else "SPACE = Bestätigen"
+    check_question = (
+        "Briefly explain why you chose that rating for how well the description fits the image."
+        if phase_language == "en"
+        else "Erkläre kurz, warum du diese Bewertung gewählt hast."
+    )
     prime_stim = visual.TextStim(win, color="white", height=0.05, wrapWidth=1.5)
     fallback_stim = visual.TextStim(win, color="white", height=0.045, wrapWidth=1.5)
     progress_stim = visual.TextStim(
@@ -1308,7 +1782,7 @@ def run_phase(
 
     question_stim = visual.TextStim(
         win,
-        text="How well do you feel like the description fits the image you were presented with?",
+        text=rating_question,
         color="white",
         height=0.04,
         pos=(0, 0.35),
@@ -1316,7 +1790,7 @@ def run_phase(
     )
     controls_stim = visual.TextStim(
         win,
-        text="Hold LEFT/RIGHT to move the slider. Press SPACE to confirm.",
+        text=rating_controls,
         color="#cccccc",
         height=0.028,
         pos=(0, 0.23),
@@ -1325,7 +1799,7 @@ def run_phase(
     slider = visual.Slider(
         win,
         ticks=[1, 2, 3, 4, 5],
-        labels=["Doesn't fit at all", "", "", "", "Fits perfectly"],
+        labels=rating_labels,
         granularity=0,
         style=["rating"],
         size=(1.1, 0.1),
@@ -1343,7 +1817,7 @@ def run_phase(
     )
     confirm_label = visual.TextStim(
         win,
-        text="SPACE = Confirm",
+        text=confirm_text,
         color="white",
         height=0.034,
         pos=(0, -0.30),
@@ -1361,8 +1835,11 @@ def run_phase(
                 "phase": phase_name,
                 "participant": participant,
                 "session": session,
+                "language": trial.get("language", ""),
                 "trial_index": idx,
                 "stimulus_id": trial.get("stimulus_id") or trial.get("trial_id", ""),
+                "counterbalance_offset": trial.get("counterbalance_offset", ""),
+                "preferred_description_condition": trial.get("preferred_description_condition", ""),
                 "description_condition": trial.get("description_condition", ""),
                 "metadata_condition": trial.get("metadata_condition", ""),
                 "description": trial.get("description", ""),
@@ -1383,7 +1860,7 @@ def run_phase(
 
         prime_stim.text = (
             f"{phase_name.capitalize()} Trial {idx}/{len(trials)}\n\n"
-            f"Description:\n{trial['description']}\n\n"
+            f"{description_label}:\n{trial['description']}\n\n"
             "Press SPACE to continue."
         )
         (
@@ -1399,10 +1876,43 @@ def run_phase(
             quit_state,
             quit_hint,
             progress_stim,
+            key_state=key_state,
         )
 
         image_path = resolve_image_path(image_dir, trial["image_file"]) or (image_dir / trial["image_file"])
         image_stim = image_cache.get(trial["image_file"])
+        if image_stim is None and image_path.exists():
+            try:
+                image_stim = create_image_stim(win, image_path)
+                image_cache[trial["image_file"]] = image_stim
+            except Exception:
+                image_stim = None
+        if image_stim is not None:
+            image_stim_width_units = float(image_stim.size[0])
+            image_stim_height_units = float(image_stim.size[1])
+            image_stim_center_x_units = float(image_stim.pos[0])
+            image_stim_center_y_units = float(image_stim.pos[1])
+        else:
+            image_stim_width_units, image_stim_height_units = (
+                fit_image_size_height_units(image_path)
+                if image_path.exists()
+                else (cfg.IMAGE_MAX_WIDTH_HEIGHT_UNITS, cfg.IMAGE_MAX_HEIGHT_HEIGHT_UNITS)
+            )
+            image_stim_center_x_units = 0.0
+            image_stim_center_y_units = 0.0
+        (
+            fixation_time,
+            fixation_onset_session,
+            fixation_offset_session,
+            fixation_onset_unix,
+            fixation_offset_unix,
+        ) = show_fixation_cross(
+            win,
+            session_clock,
+            quit_state,
+            quit_hint,
+            progress_stim,
+        )
         (
             image_view_time,
             image_onset_session,
@@ -1430,6 +1940,7 @@ def run_phase(
             fallback_stim,
             allow_fast_skip=allow_fast_skip,
             record_cursor_samples=record_cursor_samples,
+            key_state=key_state,
         )
         if record_cursor_samples and image_samples:
             append_rows(gaze_csv, image_samples, gaze_fieldnames)
@@ -1474,11 +1985,12 @@ def run_phase(
                 mismatch_offset_unix_val,
             ) = collect_mismatch_check(
                 win,
-                "Which aspect of the description do you think does not match the image?",
+                check_question,
                 quit_state,
                 quit_hint,
                 progress_stim,
                 session_clock,
+                phase_language,
             )
             mismatch_rt = round(mismatch_rt_val, 4)
             mismatch_onset_session = round(mismatch_onset_session_val, 6)
@@ -1491,9 +2003,12 @@ def run_phase(
             "phase": phase_name,
             "participant": participant,
             "session": session,
+            "language": trial.get("language", ""),
             "trial_index": idx,
             "trial_id": trial["trial_id"],
             "stimulus_id": trial.get("stimulus_id") or trial["trial_id"],
+            "counterbalance_offset": trial.get("counterbalance_offset", ""),
+            "preferred_description_condition": trial.get("preferred_description_condition", ""),
             "description_condition": trial.get("description_condition", ""),
             "metadata_condition": trial.get("metadata_condition", ""),
             "description": trial["description"],
@@ -1508,11 +2023,22 @@ def run_phase(
             "description_onset_unix_s": round(desc_onset_unix, 6),
             "description_offset_unix_s": round(desc_offset_unix, 6),
             "description_time_s": round(description_time, 4),
+            "fixation_onset_session_s": round(fixation_onset_session, 6),
+            "fixation_offset_session_s": round(fixation_offset_session, 6),
+            "fixation_onset_unix_s": round(fixation_onset_unix, 6),
+            "fixation_offset_unix_s": round(fixation_offset_unix, 6),
+            "fixation_time_s": round(fixation_time, 4),
             "image_onset_session_s": round(image_onset_session, 6),
             "image_offset_session_s": round(image_offset_session, 6),
             "image_onset_unix_s": round(image_onset_unix, 6),
             "image_offset_unix_s": round(image_offset_unix, 6),
             "image_view_time_s": round(image_view_time, 4),
+            "screen_width_px": int(win.size[0]),
+            "screen_height_px": int(win.size[1]),
+            "image_stim_width_units": round(image_stim_width_units, 6),
+            "image_stim_height_units": round(image_stim_height_units, 6),
+            "image_stim_center_x_units": round(image_stim_center_x_units, 6),
+            "image_stim_center_y_units": round(image_stim_center_y_units, 6),
             "rating_onset_session_s": round(rating_onset_session, 6),
             "rating_offset_session_s": round(rating_offset_session, 6),
             "rating_onset_unix_s": round(rating_onset_unix, 6),
@@ -1539,20 +2065,27 @@ def run_phase(
                 quit_state=quit_state,
                 quit_hint=quit_hint,
                 allow_fast_skip=allow_fast_skip,
+                key_state=key_state,
             )
 
 
 def main() -> None:
-    mode, participant, session, n_main_trials_override = get_run_info()
+    mode, language, participant, session, n_main_trials_override = get_run_info()
+    random_seed = random.SystemRandom().randint(1, 2**32 - 1)
+    random.seed(random_seed)
 
     project_root = Path(__file__).resolve().parents[1]
+    if mode == "check_images":
+        run_check_images_mode(project_root)
+        exit_without_iohub_import()
+
     practice_root = project_root / "input" / "practice"
     practice_trial_file = practice_root / "stimuli.csv"
     practice_image_dir = practice_root / "images"
     prepared_stimuli_root = project_root / "input" / "main"
     prepared_trial_file = prepared_stimuli_root / "stimuli.csv"
 
-    practice_trials_raw = load_trials(practice_trial_file)
+    practice_trials_raw = load_trials(practice_trial_file, language=language)
     if len(practice_trials_raw) < N_PRACTICE_TRIALS:
         raise ValueError(
             f"Need at least {N_PRACTICE_TRIALS} practice rows in {practice_trial_file}."
@@ -1571,10 +2104,15 @@ def main() -> None:
     if not prepared_trial_file.exists():
         raise FileNotFoundError(f"Missing prepared stimulus file: {prepared_trial_file}")
     main_image_dir = prepared_stimuli_root / "images"
-    main_trials = build_prepared_trial_sequence(load_prepared_trials(prepared_trial_file), n_main_trials)
+    counterbalance_offset = participant_counterbalance_offset(participant)
+    main_trials = build_prepared_trial_sequence(
+        load_prepared_trials(prepared_trial_file, language=language),
+        n_main_trials,
+        counterbalance_offset,
+    )
     main_trial_source = prepared_trial_file
     practice_trial_source = practice_trial_file
-    main_check_trials = choose_check_trials(n_main_trials, CHECK_RATE)
+    main_check_trials = choose_check_trials(main_trials, CHECK_RATE)
 
     run_timestamp = build_run_timestamp()
     participant_slug = sanitize_path_component(participant)
@@ -1589,9 +2127,27 @@ def main() -> None:
     practice_gaze_csv = Path(output_layout["practice_gaze_csv"])
     main_sequence_csv = Path(output_layout["main_sequence_csv"])
     qc_png = Path(output_layout["qc_png"])
+    run_metadata_json = Path(output_layout["run_metadata_json"])
     participant_index_csv = Path(output_layout["participant_index_csv"])
     participant_dir.mkdir(parents=True, exist_ok=True)
     run_dir.mkdir(parents=True, exist_ok=True)
+    write_json(
+        run_metadata_json,
+        {
+            "random_seed": random_seed,
+            "mode": mode,
+            "language": language,
+            "participant": participant,
+            "session": session,
+            "n_main_trials": n_main_trials,
+            "n_practice_trials": N_PRACTICE_TRIALS,
+            "counterbalance_offset": counterbalance_offset,
+            "check_rate": CHECK_RATE,
+            "condition_aware_mismatch_checks": True,
+            "main_check_trials": ",".join(str(idx) for idx in sorted(main_check_trials)),
+            "fixation_duration_s": FIXATION_DURATION_S,
+        },
+    )
 
     run_started_wall = datetime.now()
     run_started_at = run_started_wall.isoformat(timespec="seconds")
@@ -1613,6 +2169,7 @@ def main() -> None:
     key_state = event.pyglet.window.key.KeyStateHandler()
     win.winHandle.push_handlers(key_state)
     quit_state = QuitState()
+    install_emergency_quit_handler(win, quit_state)
     record_cursor_samples = mode in {"real", "test"}
     qc_path: Path | None = None
     run_finished_wall: datetime | None = None
@@ -1624,17 +2181,20 @@ def main() -> None:
         pos=(0, 0.45),
     )
 
-    practice_cache = build_image_cache(win, practice_trials, practice_image_dir)
-    main_cache = build_image_cache(win, main_trials, main_image_dir)
+    practice_cache: dict[str, visual.ImageStim] = {}
+    main_cache: dict[str, visual.ImageStim] = {}
 
     trial_fieldnames = [
         "run_id",
         "phase",
         "participant",
         "session",
+        "language",
         "trial_index",
         "trial_id",
         "stimulus_id",
+        "counterbalance_offset",
+        "preferred_description_condition",
         "description_condition",
         "metadata_condition",
         "description",
@@ -1649,11 +2209,22 @@ def main() -> None:
         "description_onset_unix_s",
         "description_offset_unix_s",
         "description_time_s",
+        "fixation_onset_session_s",
+        "fixation_offset_session_s",
+        "fixation_onset_unix_s",
+        "fixation_offset_unix_s",
+        "fixation_time_s",
         "image_onset_session_s",
         "image_offset_session_s",
         "image_onset_unix_s",
         "image_offset_unix_s",
         "image_view_time_s",
+        "screen_width_px",
+        "screen_height_px",
+        "image_stim_width_units",
+        "image_stim_height_units",
+        "image_stim_center_x_units",
+        "image_stim_center_y_units",
         "rating_onset_session_s",
         "rating_offset_session_s",
         "rating_onset_unix_s",
@@ -1674,8 +2245,11 @@ def main() -> None:
         "phase",
         "participant",
         "session",
+        "language",
         "trial_index",
         "stimulus_id",
+        "counterbalance_offset",
+        "preferred_description_condition",
         "description_condition",
         "metadata_condition",
         "description",
@@ -1698,57 +2272,122 @@ def main() -> None:
         "sample_from_image_onset_s",
         "gaze_x_pix",
         "gaze_y_pix",
+        "gaze_movement_px",
+        "gaze_movement_cumulative_px",
+        "screen_width_px",
+        "screen_height_px",
+        "image_stim_width_units",
+        "image_stim_height_units",
+        "image_stim_center_x_units",
+        "image_stim_center_y_units",
         "units",
     ]
 
-    if mode == "test":
-        break_text = "Break screens are disabled in this short test block."
+    if language == "en":
+        if mode == "test":
+            break_text = "Break screens are disabled in this short test block."
+            instruction_text = (
+                "Welcome.\n\n"
+                "Test mode is active.\n\n"
+                "You will first complete 2 practice trials.\n"
+                f"Then the main block starts ({n_main_trials} trials).\n\n"
+                f"Image viewing has a minimum duration of {MIN_IMAGE_VIEW_S:g} seconds.\n"
+                "Some trials include a short text check question.\n"
+                f"{break_text}\n\n"
+                "Press SPACE to start."
+            )
+            practice_intro_text = (
+                "Practice block starts now (2 trials).\n\n"
+                "These images and outputs are stored separately from main data.\n\n"
+                "Press SPACE to continue."
+            )
+        elif mode == "rg":
+            break_text = "You will get break screens during the main block."
+            instruction_text = (
+                "Welcome.\n\n"
+                "RG mode is active (research-grade tracker integration mode).\n\n"
+                "You will first complete 2 practice trials.\n"
+                f"Then the main block starts ({n_main_trials} trials).\n\n"
+                "Some trials include a short text check question.\n"
+                f"{break_text}\n\n"
+                "Press SPACE to start."
+            )
+            practice_intro_text = (
+                "Practice block starts now (2 trials).\n\n"
+                "Press SPACE to continue."
+            )
+        else:
+            break_text = "You will get break screens during the main block."
+            instruction_text = (
+                "Welcome.\n\n"
+                "You will first complete 2 practice trials.\n"
+                f"Then the main block starts ({n_main_trials} trials).\n\n"
+                "Some trials include a short text check question.\n"
+                f"{break_text}\n\n"
+                "Press SPACE to start."
+            )
+            practice_intro_text = (
+                "Practice block starts now (2 trials).\n\n"
+                "Press SPACE to continue."
+            )
+        main_intro_text = (
+            f"Main block starts now ({n_main_trials} trials).\n\n"
+            "Please stay focused and keep your posture stable.\n"
+            "Use the full range of the rating scale when appropriate.\n\n"
+            "Press SPACE to continue."
+        )
+    elif mode == "test":
+        break_text = "In diesem kurzen Testblock gibt es keine Pausenbildschirme."
         instruction_text = (
-            "Welcome.\n\n"
-            "Test mode is active.\n\n"
-            "You will first complete 2 practice trials.\n"
-            f"Then the main block starts ({n_main_trials} trials).\n\n"
-            "Image viewing has a minimum duration of 10 seconds.\n"
-            "Some trials include a short text check question.\n"
+            "Willkommen.\n\n"
+            "Der Testmodus ist aktiv.\n\n"
+            "Du machst zuerst 2 Übungsdurchgänge.\n"
+            f"Danach beginnt der Hauptblock ({n_main_trials} Durchgänge).\n\n"
+            f"Die Bildansicht dauert mindestens {MIN_IMAGE_VIEW_S:g} Sekunden.\n"
+            "Einige Durchgänge enthalten eine kurze Textfrage.\n"
             f"{break_text}\n\n"
-            "Press Q twice quickly to quit at any time.\n\n"
-            "Press SPACE to start."
+            "Drücke SPACE, um zu starten."
         )
         practice_intro_text = (
-            "Practice block starts now (2 trials).\n\n"
-            "These images and outputs are stored separately from main data.\n\n"
-            "Press SPACE to continue."
+            "Der Übungsblock beginnt jetzt (2 Durchgänge).\n\n"
+            "Diese Bilder und Ausgaben werden getrennt von den Hauptdaten gespeichert.\n\n"
+            "Drücke SPACE, um fortzufahren."
         )
     elif mode == "rg":
-        break_text = "You will get break screens during the main block."
+        break_text = "Im Hauptblock bekommst du Pausenbildschirme."
         instruction_text = (
-            "Welcome.\n\n"
-            "RG mode is active (research-grade tracker integration mode).\n\n"
-            "You will first complete 2 practice trials.\n"
-            f"Then the main block starts ({n_main_trials} trials).\n\n"
-            "Some trials include a short text check question.\n"
+            "Willkommen.\n\n"
+            "Der RG-Modus ist aktiv.\n\n"
+            "Du machst zuerst 2 Übungsdurchgänge.\n"
+            f"Danach beginnt der Hauptblock ({n_main_trials} Durchgänge).\n\n"
+            "Einige Durchgänge enthalten eine kurze Textfrage.\n"
             f"{break_text}\n\n"
-            "Press Q twice quickly to quit at any time.\n\n"
-            "Press SPACE to start."
+            "Drücke SPACE, um zu starten."
         )
         practice_intro_text = (
-            "Practice block starts now (2 trials).\n\n"
-            "Press SPACE to continue."
+            "Der Übungsblock beginnt jetzt (2 Durchgänge).\n\n"
+            "Drücke SPACE, um fortzufahren."
         )
     else:
-        break_text = "You will get break screens during the main block."
+        break_text = "Im Hauptblock bekommst du Pausenbildschirme."
         instruction_text = (
-            "Welcome.\n\n"
-            "You will first complete 2 practice trials.\n"
-            f"Then the main block starts ({n_main_trials} trials).\n\n"
-            "Some trials include a short text check question.\n"
+            "Willkommen.\n\n"
+            "Du machst zuerst 2 Übungsdurchgänge.\n"
+            f"Danach beginnt der Hauptblock ({n_main_trials} Durchgänge).\n\n"
+            "Einige Durchgänge enthalten eine kurze Textfrage.\n"
             f"{break_text}\n\n"
-            "Press Q twice quickly to quit at any time.\n\n"
-            "Press SPACE to start."
+            "Drücke SPACE, um zu starten."
         )
         practice_intro_text = (
-            "Practice block starts now (2 trials).\n\n"
-            "Press SPACE to continue."
+            "Der Übungsblock beginnt jetzt (2 Durchgänge).\n\n"
+            "Drücke SPACE, um fortzufahren."
+        )
+    if language == "de":
+        main_intro_text = (
+            f"Der Hauptblock beginnt jetzt ({n_main_trials} Durchgänge).\n\n"
+            "Bitte bleib konzentriert und halte deine Sitzposition stabil.\n"
+            "Nutze die gesamte Bewertungsskala, wenn es passend ist.\n\n"
+            "Drücke SPACE, um fortzufahren."
         )
 
     instruction = visual.TextStim(
@@ -1769,20 +2408,15 @@ def main() -> None:
 
     main_intro = visual.TextStim(
         win,
-        text=(
-            f"Main block starts now ({n_main_trials} trials).\n\n"
-            "Please stay focused and keep your posture stable.\n"
-            "Use the full range of the rating scale when appropriate.\n\n"
-            "Press SPACE to continue."
-        ),
+        text=main_intro_text,
         color="white",
         height=0.042,
         wrapWidth=1.45,
     )
 
     try:
-        wait_for_continue(win, instruction, session_clock, quit_state, quit_hint)
-        wait_for_continue(win, practice_intro, session_clock, quit_state, quit_hint)
+        wait_for_continue(win, instruction, session_clock, quit_state, quit_hint, key_state=key_state)
+        wait_for_continue(win, practice_intro, session_clock, quit_state, quit_hint, key_state=key_state)
 
         run_phase(
             phase_name="practice",
@@ -1808,10 +2442,10 @@ def main() -> None:
             check_trials=None,
             enable_breaks=False,
             show_min_view_countdown=(mode == "test"),
-            allow_fast_skip=(mode == "test"),
+            allow_fast_skip=True,
         )
 
-        wait_for_continue(win, main_intro, session_clock, quit_state, quit_hint)
+        wait_for_continue(win, main_intro, session_clock, quit_state, quit_hint, key_state=key_state)
 
         run_phase(
             phase_name="main",
@@ -1837,7 +2471,7 @@ def main() -> None:
             check_trials=main_check_trials,
             enable_breaks=(mode != "test"),
             show_min_view_countdown=(mode == "test"),
-            allow_fast_skip=(mode == "test"),
+            allow_fast_skip=True,
         )
 
         finished_screen = visual.TextStim(
@@ -1851,7 +2485,7 @@ def main() -> None:
             height=0.05,
             wrapWidth=1.45,
         )
-        wait_for_space_screen(win, session_clock, quit_state, quit_hint, finished_screen)
+        wait_for_space_screen(win, session_clock, quit_state, quit_hint, finished_screen, key_state=key_state)
 
         loading_screen = visual.TextStim(
             win,
@@ -1887,59 +2521,63 @@ def main() -> None:
             qc_image_stim = visual.ImageStim(
                 win,
                 image=str(qc_path),
-                pos=(0, 0.18),
-                size=(1.28, 0.60),
+                pos=(0, 0.16),
+                size=(1.22, 0.56),
                 units="height",
             )
 
-        qc_text = (
-            "\n".join(qc_summary[: cfg.QC_SUMMARY_LINES]) if qc_summary else "No QC summary available."
+        valid_image_times = [
+            value for row in main_rows if (value := to_float(row.get("image_view_time_s"))) is not None
+        ]
+        valid_ratings = [
+            value for row in main_rows if (value := to_float(row.get("rating"))) is not None
+        ]
+        condition_counts = get_condition_counts(main_rows)
+        mean_image_time = (
+            f"{sum(valid_image_times) / len(valid_image_times):.1f}s"
+            if valid_image_times
+            else "n/a"
         )
-        checklist_text = "\n".join(checklist)
+        mean_rating = (
+            f"{sum(valid_ratings) / len(valid_ratings):.2f}"
+            if valid_ratings
+            else "n/a"
+        )
+        essential_summary = (
+            f"Main trials: {len(main_rows)}/{n_main_trials}\n"
+            f"Gaze samples: {len(gaze_rows)}\n"
+            f"Mean image time: {mean_image_time}\n"
+            f"Mean rating: {mean_rating}\n"
+            "C/A/I: "
+            + "/".join(str(condition_counts[label]) for label in PREPARED_DESCRIPTION_CONDITIONS)
+            + "\n"
+            f"Saved: {run_dir.relative_to(project_root)}"
+        )
+        issues = [item for item in checklist if item.startswith("[WARN]") or item.startswith("[FAIL]")]
+        issue_text = "\n".join(issues[:5]) if issues else "No warnings."
         done_title = visual.TextStim(
             win,
-            text=(
-                "Run Quality Check"
-            ),
+            text="Run QC",
             color="white",
-            height=0.038,
+            height=0.032,
             pos=(0, 0.49),
             wrapWidth=1.2,
-        )
-        panel = visual.Rect(
-            win,
-            width=1.36,
-            height=0.42,
-            pos=(0, -0.30),
-            fillColor=(-0.85, -0.85, -0.85),
-            lineColor="#666666",
-            lineWidth=1.5,
         )
         summary_heading = visual.TextStim(
             win,
             text="Summary",
             color="#ffffff",
-            height=0.026,
-            pos=(-0.62, -0.13),
+            height=0.023,
+            pos=(-0.62, -0.18),
             wrapWidth=0.6,
             alignText="left",
             anchorHoriz="left",
         )
         summary_body = visual.TextStim(
             win,
-            text=(
-                f"{qc_text}\n\n"
-                f"Output root: {output_root.relative_to(project_root)}\n"
-                f"Run folder: {run_dir.relative_to(project_root)}\n"
-                f"QC figure: {qc_path.relative_to(project_root) if qc_path is not None else 'not available'}\n"
-                f"Sequence manifest: {main_sequence_csv.relative_to(project_root)}\n"
-                f"Latest participant index: {participant_index_csv.relative_to(project_root)}\n"
-                f"Stimulus source: {main_trial_source.relative_to(project_root)}\n"
-                f"Main trials: {main_output_csv.relative_to(project_root)}\n"
-                f"Practice trials: {practice_output_csv.relative_to(project_root)}"
-            ),
+            text=essential_summary,
             color="#f4f4f4",
-            height=0.018,
+            height=0.016,
             pos=(-0.62, -0.32),
             wrapWidth=0.60,
             alignText="left",
@@ -1947,19 +2585,19 @@ def main() -> None:
         )
         checklist_heading = visual.TextStim(
             win,
-            text="Validity Checklist",
+            text="Warnings",
             color="#ffffff",
-            height=0.026,
-            pos=(0.03, -0.13),
+            height=0.023,
+            pos=(0.03, -0.18),
             wrapWidth=0.62,
             alignText="left",
             anchorHoriz="left",
         )
         checklist_body = visual.TextStim(
             win,
-            text=checklist_text,
+            text=issue_text,
             color="#f4f4f4",
-            height=0.017,
+            height=0.016,
             pos=(0.03, -0.32),
             wrapWidth=0.62,
             alignText="left",
@@ -1969,15 +2607,18 @@ def main() -> None:
             win,
             text="Hold SPACE for 1 second to close.",
             color="#ffffff",
-            height=0.022,
+            height=0.020,
             pos=(0, -0.49),
             wrapWidth=1.2,
         )
 
         event.clearEvents(eventType="keyboard")
         hold_close_s = 0.0
-        last_close_t = session_clock.getTime()
+        close_onset_session = session_clock.getTime()
+        last_close_t = close_onset_session
+        space_released_before_close = not key_state_is_pressed(key_state, event.pyglet.window.key.SPACE)
         while True:
+            quit_state.raise_if_requested()
             now_session = session_clock.getTime()
             dt = min(max(now_session - last_close_t, 0.0), 0.05)
             last_close_t = now_session
@@ -1985,7 +2626,6 @@ def main() -> None:
             if qc_image_stim is not None:
                 qc_image_stim.draw()
             done_title.draw()
-            panel.draw()
             summary_heading.draw()
             summary_body.draw()
             checklist_heading.draw()
@@ -1997,7 +2637,14 @@ def main() -> None:
             keys = event.getKeys(keyList=["q"])
             now_session = session_clock.getTime()
             quit_state.process_keys(keys, now_session)
-            if bool(key_state[event.pyglet.window.key.SPACE]):
+            space_down = key_state_is_pressed(key_state, event.pyglet.window.key.SPACE)
+            if not space_released_before_close:
+                if not space_down:
+                    space_released_before_close = True
+                hold_close_s = 0.0
+            elif now_session - close_onset_session < CONTINUE_KEY_BUFFER_S:
+                hold_close_s = 0.0
+            elif space_down:
                 hold_close_s += dt
             else:
                 hold_close_s = 0.0
@@ -2022,7 +2669,10 @@ def main() -> None:
         )
         abort_msg.draw()
         win.flip()
-        core.wait(1.5)
+        abort_until = time.monotonic() + 1.5
+        while time.monotonic() < abort_until:
+            win.flip()
+            core.wait(0.05)
 
     except Exception as exc:
         run_status = "error"
@@ -2042,9 +2692,23 @@ def main() -> None:
             height=0.045,
             wrapWidth=1.45,
         )
-        error_msg.draw()
-        win.flip()
-        event.waitKeys(keyList=["space"])
+        event.clearEvents(eventType="keyboard")
+        error_onset_session = session_clock.getTime()
+        error_close_gate = ContinueKeyGate(
+            "space",
+            key_state,
+            event.pyglet.window.key.SPACE,
+            error_onset_session,
+        )
+        while True:
+            quit_state.raise_if_requested()
+            error_msg.draw()
+            win.flip()
+            keys = event.getKeys(keyList=["space", "q"])
+            now_session = session_clock.getTime()
+            quit_state.process_keys(keys, now_session)
+            if error_close_gate.accepts(keys, now_session):
+                break
 
     finally:
         if run_status == "in_progress":
@@ -2059,6 +2723,7 @@ def main() -> None:
             participant_dir=participant_dir,
             run_dir=run_dir,
             mode=mode,
+            language=language,
             session=session,
             run_id=run_id,
             run_started_at=run_started_at,
@@ -2066,11 +2731,13 @@ def main() -> None:
             run_duration_s=run_duration_s,
             run_status=run_status,
             run_error=run_error,
+            random_seed=random_seed,
             main_output_csv=main_output_csv,
             main_gaze_csv=main_gaze_csv,
             practice_output_csv=practice_output_csv,
             practice_gaze_csv=practice_gaze_csv,
             main_sequence_csv=main_sequence_csv,
+            run_metadata_json=run_metadata_json,
             qc_png=qc_path if qc_path is not None else qc_png,
             n_main_trials_expected=n_main_trials,
             n_practice_trials_expected=N_PRACTICE_TRIALS,
@@ -2087,12 +2754,14 @@ def main() -> None:
                 "run_folder",
                 "run_id",
                 "mode",
+                "language",
                 "session",
                 "status",
                 "error_message",
                 "run_started_at",
                 "run_finished_at",
                 "run_duration_s",
+                "random_seed",
                 "n_main_trials_expected",
                 "n_main_trials_recorded",
                 "n_practice_trials_expected",
@@ -2105,6 +2774,7 @@ def main() -> None:
                 "practice_trials_csv",
                 "practice_gaze_csv",
                 "main_sequence_csv",
+                "run_metadata_json",
                 "qc_png",
                 "main_stimulus_source",
                 "practice_stimulus_source",
@@ -2112,7 +2782,7 @@ def main() -> None:
             "participant",
         )
         win.close()
-        core.quit()
+        exit_without_iohub_import()
 
 
 if __name__ == "__main__":

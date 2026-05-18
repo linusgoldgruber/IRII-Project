@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import math
+from collections import Counter
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +26,7 @@ AOI_DIR = PROJECT_ROOT / "input" / "main" / "aois"
 AOI_STORE_PATH = AOI_DIR / "aoi_shapes.json"
 LEGACY_SEEDS_PATH = AOI_DIR / "seeds.json"
 AOI_CSV_PATH = AOI_DIR / "aois.csv"
+AOI_METHOD_SUMMARY_PATH = AOI_DIR / "method_summary.json"
 PREVIEW_DIR = AOI_DIR / "previews"
 LABEL_MAP_DIR = AOI_DIR / "label_maps"
 SUPPORTED_SUFFIXES = {".jpg", ".jpeg", ".png", ".ppm", ".bmp", ".tif", ".tiff"}
@@ -38,8 +42,18 @@ PALETTE = [
     (239, 71, 111),
     (255, 255, 255),
 ]
-DEFAULT_TOTAL_AOIS = 3
+DEFAULT_TOTAL_AOIS = 4
 MAX_TOTAL_AOIS = 10
+AUTO_MIN_TOTAL_AOIS = 4
+AUTO_MAX_TOTAL_AOIS = 5
+LIMITED_RADIUS_MARGIN_NORM = 0.035
+LIMITED_RADIUS_MIN_NORM = 0.09
+LIMITED_RADIUS_MAX_NORM = 0.24
+REGION_MARGIN_NORM = 0.04
+REGION_MIN_SIZE_NORM = 0.12
+REGION_MAX_SIZE_NORM = 0.62
+REGION_MAX_IOU = 0.18
+LIMITED_RADIUS_METHOD = "predefined_region_with_margin"
 
 
 @dataclass
@@ -53,6 +67,8 @@ class AOI:
     h: float = 1.0
     locked: bool = False
     points: list[tuple[float, float]] | None = None
+    method: str = "manual"
+    source: str = ""
 
     @property
     def is_background(self) -> bool:
@@ -69,11 +85,12 @@ def list_images(image_dir: Path = IMAGE_DIR) -> list[Path]:
 
 def load_store(path: Path = AOI_STORE_PATH) -> dict[str, Any]:
     if not path.exists():
-        return {"schema_version": 2, "images": {}}
+        return {"schema_version": 2, "images": {}, "archived_images": []}
     with path.open("r", encoding="utf-8") as f:
         data = json.load(f)
     data.setdefault("schema_version", 2)
     data.setdefault("images", {})
+    data.setdefault("archived_images", [])
     return data
 
 
@@ -102,6 +119,8 @@ def aoi_from_record(item: dict[str, Any], index: int) -> AOI:
         h=clamp01(float(item.get("h", 1.0))),
         locked=bool(item.get("locked", kind == "background")),
         points=points or None,
+        method=str(item.get("method") or ("non_aoi" if kind == "background" else "manual")),
+        source=str(item.get("source") or ""),
     )
 
 
@@ -111,6 +130,8 @@ def aoi_to_record(aoi: AOI) -> dict[str, Any]:
         "label": aoi.label,
         "kind": aoi.kind,
         "locked": aoi.locked,
+        "method": aoi.method,
+        "source": aoi.source,
     }
     if not aoi.is_background:
         record.update(
@@ -135,6 +156,50 @@ def aois_to_record(aois: list[AOI]) -> dict[str, Any]:
     return {"aois": [aoi_to_record(aoi) for aoi in normalize_aois(aois)]}
 
 
+def image_fingerprint(image_path: Path) -> dict[str, Any]:
+    digest = hashlib.sha256()
+    with image_path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    stat = image_path.stat()
+    return {
+        "sha256": digest.hexdigest(),
+        "size_bytes": stat.st_size,
+        "mtime_ns": stat.st_mtime_ns,
+    }
+
+
+def record_fingerprint(record: dict[str, Any]) -> dict[str, Any] | None:
+    fingerprint = record.get("image_fingerprint")
+    return fingerprint if isinstance(fingerprint, dict) else None
+
+
+def fingerprint_matches(record: dict[str, Any], image_path: Path) -> bool | None:
+    fingerprint = record_fingerprint(record)
+    if not fingerprint:
+        return None
+    current = image_fingerprint(image_path)
+    return fingerprint.get("sha256") == current["sha256"] and fingerprint.get("size_bytes") == current["size_bytes"]
+
+
+def with_image_metadata(record: dict[str, Any], image_path: Path) -> dict[str, Any]:
+    record = dict(record)
+    record["image_fingerprint"] = image_fingerprint(image_path)
+    record["image_file"] = image_path.name
+    return record
+
+
+def archive_image_record(store: dict[str, Any], image_name: str, record: dict[str, Any], reason: str) -> None:
+    store.setdefault("archived_images", []).append(
+        {
+            "image_file": image_name,
+            "archived_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "reason": reason,
+            "record": record,
+        }
+    )
+
+
 def normalize_aois(aois: list[AOI]) -> list[AOI]:
     background = [aoi for aoi in aois if aoi.is_background]
     foreground = [aoi for aoi in aois if not aoi.is_background]
@@ -142,6 +207,8 @@ def normalize_aois(aois: list[AOI]) -> list[AOI]:
     result[0].aoi_id = "BG"
     result[0].label = result[0].label or "background / rest"
     result[0].locked = True
+    result[0].method = result[0].method or "non_aoi"
+    result[0].source = result[0].source or "default non-AOI category"
     for i, aoi in enumerate(foreground[: MAX_TOTAL_AOIS - 1], start=1):
         aoi.aoi_id = f"AOI{i}"
         aoi.label = aoi.label or f"AOI {i}"
@@ -155,6 +222,7 @@ def normalize_aois(aois: list[AOI]) -> list[AOI]:
         aoi.w = max(0.01, clamp01(aoi.w))
         aoi.h = max(0.01, clamp01(aoi.h))
         aoi.locked = False
+        aoi.method = aoi.method or "manual"
         result.append(aoi)
     return result
 
@@ -182,7 +250,57 @@ def simplify_points(points: list[tuple[float, float]], max_points: int = 140) ->
     return simplified
 
 
-def image_oriented_defaults(image_path: Path, k: int) -> list[AOI]:
+def zscore(values: np.ndarray) -> np.ndarray:
+    return (values - values.mean()) / (values.std() + 1e-6)
+
+
+def connected_components(mask: np.ndarray) -> list[tuple[np.ndarray, np.ndarray]]:
+    height, width = mask.shape
+    visited = np.zeros_like(mask, dtype=bool)
+    components: list[tuple[np.ndarray, np.ndarray]] = []
+    for start_y, start_x in zip(*np.where(mask & ~visited)):
+        if visited[start_y, start_x]:
+            continue
+        stack = [(int(start_y), int(start_x))]
+        visited[start_y, start_x] = True
+        xs: list[int] = []
+        ys: list[int] = []
+        while stack:
+            y, x = stack.pop()
+            xs.append(x)
+            ys.append(y)
+            for ny in (y - 1, y, y + 1):
+                for nx in (x - 1, x, x + 1):
+                    if ny == y and nx == x:
+                        continue
+                    if 0 <= ny < height and 0 <= nx < width and mask[ny, nx] and not visited[ny, nx]:
+                        visited[ny, nx] = True
+                        stack.append((ny, nx))
+        components.append((np.asarray(ys), np.asarray(xs)))
+    return components
+
+
+def box_iou(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> float:
+    ax0, ay0, aw, ah = a
+    bx0, by0, bw, bh = b
+    ax1, ay1 = ax0 + aw, ay0 + ah
+    bx1, by1 = bx0 + bw, by0 + bh
+    inter_w = max(0.0, min(ax1, bx1) - max(ax0, bx0))
+    inter_h = max(0.0, min(ay1, by1) - max(ay0, by0))
+    inter = inter_w * inter_h
+    union = aw * ah + bw * bh - inter
+    return inter / union if union > 0 else 0.0
+
+
+def clamp_box(x: float, y: float, w: float, h: float) -> tuple[float, float, float, float]:
+    w = min(REGION_MAX_SIZE_NORM, max(REGION_MIN_SIZE_NORM, w))
+    h = min(REGION_MAX_SIZE_NORM, max(REGION_MIN_SIZE_NORM, h))
+    x = min(max(0.0, x), 1.0 - w)
+    y = min(max(0.0, y), 1.0 - h)
+    return x, y, w, h
+
+
+def estimate_limited_radius_regions(image_path: Path, k: int | None) -> list[AOI]:
     image = Image.open(image_path).convert("RGB")
     small = image.copy()
     small.thumbnail((180, 180), Image.Resampling.LANCZOS)
@@ -192,64 +310,154 @@ def image_oriented_defaults(image_path: Path, k: int) -> list[AOI]:
     border = np.concatenate([arr[0, :, :], arr[-1, :, :], arr[:, 0, :], arr[:, -1, :]], axis=0)
     border_color = np.median(border, axis=0)
     color_delta = np.linalg.norm(arr - border_color, axis=2)
+    saturation = arr.max(axis=2) - arr.min(axis=2)
     gray = arr.mean(axis=2)
     gx = np.abs(np.diff(gray, axis=1, prepend=gray[:, :1]))
     gy = np.abs(np.diff(gray, axis=0, prepend=gray[:1, :]))
     edges = gx + gy
     yy, xx = np.indices((height, width), dtype=np.float32)
     cx, cy = (width - 1) / 2.0, (height - 1) / 2.0
-    centrality = 1.0 - np.minimum(1.0, np.hypot((xx - cx) / width, (yy - cy) / height) * 1.65)
+    centrality = 1.0 - np.minimum(1.0, np.hypot((xx - cx) / width, (yy - cy) / height) * 1.35)
 
-    def zscore(values: np.ndarray) -> np.ndarray:
-        return (values - values.mean()) / (values.std() + 1e-6)
+    saliency = 0.9 * zscore(color_delta) + 0.75 * zscore(edges) + 0.35 * zscore(saturation) + 0.25 * centrality
 
-    saliency = zscore(color_delta) + 0.55 * zscore(edges) + 0.7 * centrality
-    threshold = np.percentile(saliency, 82)
-    mask = saliency >= threshold
-    ys, xs = np.where(mask)
-    if len(xs) < max(20, width * height * 0.03):
-        bbox = (0.28, 0.26, 0.44, 0.48)
-    else:
-        pad_x = width * 0.08
-        pad_y = height * 0.08
-        x0 = clamp01((float(xs.min()) - pad_x) / width)
-        y0 = clamp01((float(ys.min()) - pad_y) / height)
-        x1 = clamp01((float(xs.max()) + pad_x) / width)
-        y1 = clamp01((float(ys.max()) + pad_y) / height)
-        if (x1 - x0) * (y1 - y0) > 0.72:
-            bbox = (0.18, 0.16, 0.64, 0.68)
+    # Work on coarse tiles rather than individual pixels. This produces
+    # operational regions/fields, not point-like circular blobs.
+    grid_cols = 10
+    grid_rows = 10
+    tile_scores = np.zeros((grid_rows, grid_cols), dtype=np.float32)
+    for gy_idx in range(grid_rows):
+        y0 = round(gy_idx * height / grid_rows)
+        y1 = round((gy_idx + 1) * height / grid_rows)
+        for gx_idx in range(grid_cols):
+            x0 = round(gx_idx * width / grid_cols)
+            x1 = round((gx_idx + 1) * width / grid_cols)
+            tile_scores[gy_idx, gx_idx] = float(saliency[y0:y1, x0:x1].mean())
+
+    threshold = np.percentile(tile_scores, 78)
+    tile_mask = tile_scores >= threshold
+    components = []
+    for tile_ys, tile_xs in connected_components(tile_mask):
+        if len(tile_xs) == 0:
+            continue
+        x0_tile = int(tile_xs.min())
+        x1_tile = int(tile_xs.max()) + 1
+        y0_tile = int(tile_ys.min())
+        y1_tile = int(tile_ys.max()) + 1
+        x = x0_tile / grid_cols - REGION_MARGIN_NORM
+        y = y0_tile / grid_rows - REGION_MARGIN_NORM
+        w = (x1_tile - x0_tile) / grid_cols + 2 * REGION_MARGIN_NORM
+        h = (y1_tile - y0_tile) / grid_rows + 2 * REGION_MARGIN_NORM
+        x, y, w, h = clamp_box(x, y, w, h)
+        component_scores = tile_scores[tile_ys, tile_xs]
+        score = float(component_scores.mean() * math.sqrt(len(tile_xs)))
+        aspect = w / max(h, 1e-6)
+        kind = "rect" if aspect > 1.55 or aspect < 0.65 or (w * h) > 0.18 else "ellipse"
+        components.append(
+            {
+                "box": (x, y, w, h),
+                "kind": kind,
+                "score": score,
+                "level": "coarse_region",
+            }
+        )
+
+    high_threshold = np.percentile(saliency, 93)
+    high_mask = saliency >= high_threshold
+    min_component_px = max(12, int(width * height * 0.0025))
+    for ys, xs in connected_components(high_mask):
+        if len(xs) < min_component_px:
+            continue
+        x0 = float(xs.min()) / max(1, width - 1) - REGION_MARGIN_NORM
+        x1 = float(xs.max()) / max(1, width - 1) + REGION_MARGIN_NORM
+        y0 = float(ys.min()) / max(1, height - 1) - REGION_MARGIN_NORM
+        y1 = float(ys.max()) / max(1, height - 1) + REGION_MARGIN_NORM
+        x, y, w, h = clamp_box(x0, y0, x1 - x0, y1 - y0)
+        area = w * h
+        if area > 0.28:
+            continue
+        component_saliency = saliency[ys, xs]
+        score = float(component_saliency.mean() * math.sqrt(len(xs)) * 1.15)
+        aspect = w / max(h, 1e-6)
+        kind = "rect" if aspect > 1.85 or aspect < 0.55 else "ellipse"
+        components.append(
+            {
+                "box": (x, y, w, h),
+                "kind": kind,
+                "score": score,
+                "level": "detail_region",
+            }
+        )
+
+    components.sort(key=lambda item: item["score"], reverse=True)
+    target_total = k if k is not None else min(AUTO_MAX_TOTAL_AOIS, max(AUTO_MIN_TOTAL_AOIS, len(components) + 1))
+    target_foreground = max(1, min(MAX_TOTAL_AOIS - 1, target_total - 1))
+    selected: list[dict[str, object]] = []
+    for component in components:
+        too_close = False
+        for other in selected:
+            overlap = box_iou(component["box"], other["box"])
+            component_area = component["box"][2] * component["box"][3]
+            other_area = other["box"][2] * other["box"][3]
+            nested_detail = (
+                component.get("level") == "detail_region"
+                and component_area < other_area * 0.42
+                and overlap < 0.55
+            )
+            if overlap > REGION_MAX_IOU and not nested_detail:
+                too_close = True
+                break
+        if not too_close:
+            selected.append(component)
+        if len(selected) >= target_foreground:
+            break
+
+    fallback_boxes = [
+        (0.34, 0.30, 0.32, 0.32),
+        (0.12, 0.34, 0.26, 0.30),
+        (0.62, 0.34, 0.26, 0.30),
+        (0.34, 0.08, 0.32, 0.24),
+    ]
+    while len(selected) < target_foreground:
+        box = fallback_boxes[len(selected) % len(fallback_boxes)]
+        if all(box_iou(box, other["box"]) <= REGION_MAX_IOU for other in selected):
+            selected.append({"box": box, "kind": "ellipse", "score": 0.0})
         else:
-            bbox = (x0, y0, max(0.16, x1 - x0), max(0.16, y1 - y0))
+            break
 
-    aois = [AOI("BG", "background / rest", "background", locked=True)]
-    aois.append(AOI("AOI1", "main object / figure", "ellipse", *bbox))
-    if k >= 3:
-        inner_w = max(0.12, bbox[2] * 0.45)
-        inner_h = max(0.12, bbox[3] * 0.45)
+    aois = [
+        AOI(
+            "BG",
+            "non-AOI / background",
+            "background",
+            locked=True,
+            method="non_aoi",
+            source="predefined-region initialization leaves unassigned space outside AOIs",
+        )
+    ]
+    for idx, component in enumerate(selected, start=1):
+        x_norm, y_norm, w_norm, h_norm = component["box"]
         aois.append(
             AOI(
-                "AOI2",
-                "central detail",
-                "ellipse",
-                clamp01(bbox[0] + (bbox[2] - inner_w) / 2.0),
-                clamp01(bbox[1] + (bbox[3] - inner_h) / 2.0),
-                inner_w,
-                inner_h,
+                f"AOI{idx}",
+                f"operational region {idx}",
+                str(component["kind"]),
+                x_norm,
+                y_norm,
+                w_norm,
+                h_norm,
+                method=LIMITED_RADIUS_METHOD,
+                source=(
+                    "pre-gaze coarse saliency region; region bounds expanded by margin "
+                    f"{REGION_MARGIN_NORM:.3f} of image extent"
+                ),
             )
         )
-    if k >= 4:
-        aois.append(AOI("AOI3", "lower / supporting detail", "ellipse", 0.28, 0.62, 0.44, 0.24))
-    if k >= 5:
-        aois.append(AOI("AOI4", "upper / contextual detail", "ellipse", 0.30, 0.10, 0.40, 0.24))
-    if k >= 6:
-        aois.append(AOI("AOI5", "left detail", "ellipse", 0.08, 0.34, 0.22, 0.32))
-    if k >= 7:
-        aois.append(AOI("AOI6", "right detail", "ellipse", 0.70, 0.34, 0.22, 0.32))
-    if k >= 8:
-        aois.append(AOI("AOI7", "upper edge detail", "rect", 0.25, 0.02, 0.50, 0.16))
-    if k >= 9:
-        aois.append(AOI("AOI8", "lower edge detail", "rect", 0.25, 0.82, 0.50, 0.16))
     return normalize_aois(aois)
+
+
+def image_oriented_defaults(image_path: Path, k: int | None) -> list[AOI]:
+    return estimate_limited_radius_regions(image_path, k)
 
 
 def legacy_seed_defaults(image_name: str) -> list[AOI] | None:
@@ -280,16 +488,74 @@ def get_image_aois(store: dict[str, Any], image_path: Path, k: int | None) -> li
 def ensure_records(images: list[Path], k: int | None, overwrite: bool = False, from_legacy_seeds: bool = False) -> dict[str, Any]:
     store = load_store()
     for image_path in images:
-        if not overwrite and image_path.name in store["images"]:
-            continue
+        existing = store["images"].get(image_path.name)
+        if existing and not overwrite:
+            matches = fingerprint_matches(existing, image_path)
+            if matches is False:
+                archive_image_record(
+                    store,
+                    image_path.name,
+                    existing,
+                    "image file changed while keeping the same filename",
+                )
+            else:
+                if matches is None:
+                    store["images"][image_path.name] = with_image_metadata(existing, image_path)
+                continue
+        elif existing and overwrite:
+            archive_image_record(store, image_path.name, existing, "overwritten during AOI initialization")
         aois = legacy_seed_defaults(image_path.name) if from_legacy_seeds else None
-        store["images"][image_path.name] = aois_to_record(aois or image_oriented_defaults(image_path, k or DEFAULT_TOTAL_AOIS))
+        store["images"][image_path.name] = with_image_metadata(
+            aois_to_record(aois or image_oriented_defaults(image_path, k or DEFAULT_TOTAL_AOIS)),
+            image_path,
+        )
     save_store(store)
     return store
 
 
+def is_limited_radius_aoi(aoi: AOI) -> bool:
+    return aoi.kind in {"ellipse", "rect"} and aoi.method in {
+        LIMITED_RADIUS_METHOD,
+        "manual_adjusted_limited_radius",
+    }
+
+
+def rasterize_limited_radius_aois(width: int, height: int, aois: list[AOI]) -> np.ndarray:
+    labels = np.zeros((height, width), dtype=np.uint8)
+    yy, xx = np.indices((height, width), dtype=np.float32)
+    candidates: list[tuple[np.ndarray, np.ndarray, int]] = []
+    for idx, aoi in enumerate(aois[1:], start=1):
+        mask = Image.new("L", (width, height), 0)
+        draw = ImageDraw.Draw(mask)
+        x0 = round(aoi.x * width)
+        y0 = round(aoi.y * height)
+        x1 = round((aoi.x + aoi.w) * width)
+        y1 = round((aoi.y + aoi.h) * height)
+        if aoi.kind == "rect":
+            draw.rectangle((x0, y0, x1, y1), fill=255)
+        else:
+            draw.ellipse((x0, y0, x1, y1), fill=255)
+        cx = (aoi.x + aoi.w / 2.0) * width
+        cy = (aoi.y + aoi.h / 2.0) * height
+        center_distance = (xx - cx) ** 2 + (yy - cy) ** 2
+        candidates.append((np.asarray(mask) > 0, center_distance, idx))
+    if not candidates:
+        return labels
+
+    best_distance = np.full((height, width), np.inf, dtype=np.float32)
+    for inside, center_distance, idx in candidates:
+        update = inside & (center_distance < best_distance)
+        labels[update] = idx
+        best_distance[update] = center_distance[update]
+    return labels
+
+
 def rasterize_aois(width: int, height: int, aois: list[AOI]) -> np.ndarray:
     aois = normalize_aois(aois)
+    foreground = aois[1:]
+    if foreground and all(is_limited_radius_aoi(aoi) for aoi in foreground):
+        return rasterize_limited_radius_aois(width, height, aois)
+
     labels = np.zeros((height, width), dtype=np.uint8)
     for idx, aoi in enumerate(aois[1:], start=1):
         mask = Image.new("L", (width, height), 0)
@@ -326,6 +592,8 @@ def label_stats(labels: np.ndarray, aois: list[AOI]) -> list[dict[str, Any]]:
                 "aoi_id": aoi.aoi_id,
                 "label": aoi.label,
                 "kind": aoi.kind,
+                "method": aoi.method,
+                "source": aoi.source,
                 "z_order": idx,
                 "x_norm": "" if aoi.is_background else aoi.x,
                 "y_norm": "" if aoi.is_background else aoi.y,
@@ -376,6 +644,9 @@ def draw_preview(image: Image.Image, aois: list[AOI], labels: np.ndarray) -> Ima
             draw.rectangle((x0, y0, x1, y1), outline=(*color, 255), width=4)
         else:
             draw.ellipse((x0, y0, x1, y1), outline=(*color, 255), width=4)
+        center_x = x0 + (x1 - x0) / 2.0
+        center_y = y0 + (y1 - y0) / 2.0
+        draw.ellipse((center_x - 4, center_y - 4, center_x + 4, center_y + 4), fill=(255, 255, 255, 255), outline=(0, 0, 0, 255))
         draw.text((x0 + 4, y0 + 4), f"{aoi.aoi_id}: {aoi.label}", fill=(255, 255, 255, 255), font=font, stroke_width=2, stroke_fill=(0, 0, 0, 255))
     return preview.convert("RGB")
 
@@ -391,6 +662,8 @@ def write_outputs(images: list[Path], store: dict[str, Any], k: int | None) -> N
         "aoi_id",
         "label",
         "kind",
+        "method",
+        "source",
         "z_order",
         "x_norm",
         "y_norm",
@@ -404,17 +677,45 @@ def write_outputs(images: list[Path], store: dict[str, Any], k: int | None) -> N
         "bbox_w",
         "bbox_h",
     ]
+    summary_counts: Counter[int] = Counter()
+    summary_methods: Counter[str] = Counter()
     with AOI_CSV_PATH.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         for image_path in images:
             image = Image.open(image_path).convert("RGB")
             aois = get_image_aois(store, image_path, k)
+            summary_counts[len(aois)] += 1
+            summary_methods.update(aoi.method for aoi in aois)
             labels = rasterize_aois(image.width, image.height, aois)
             draw_preview(image, aois, labels).save(PREVIEW_DIR / f"{image_path.stem}_aois.png")
             Image.fromarray(labels + 1).save(LABEL_MAP_DIR / f"{image_path.stem}_labels.png")
             for row in label_stats(labels, aois):
                 writer.writerow({"image_file": image_path.name, "image_width": image.width, "image_height": image.height, **row})
+    with AOI_METHOD_SUMMARY_PATH.open("w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "schema_version": 2,
+                "method": LIMITED_RADIUS_METHOD,
+                "interpretation": "AOIs are operational analysis regions, not objective semantic object boundaries.",
+                "non_aoi_rule": "Pixels outside all foreground operational regions are assigned to non-AOI / background.",
+                "overlap_rule": "Overlapping predefined regions are assigned by nearest region center; manual polygon AOIs use layer order.",
+                "region_margin_norm": REGION_MARGIN_NORM,
+                "region_min_size_norm": REGION_MIN_SIZE_NORM,
+                "region_max_size_norm": REGION_MAX_SIZE_NORM,
+                "region_max_iou_for_auto_selection": REGION_MAX_IOU,
+                "default_total_categories": DEFAULT_TOTAL_AOIS,
+                "auto_min_total_categories": AUTO_MIN_TOTAL_AOIS,
+                "auto_max_total_categories": AUTO_MAX_TOTAL_AOIS,
+                "image_count": len(images),
+                "aoi_count_distribution": dict(sorted(summary_counts.items())),
+                "method_counts": dict(sorted(summary_methods.items())),
+            },
+            f,
+            indent=2,
+            sort_keys=True,
+        )
+        f.write("\n")
 
 
 class ShapeEditor:
@@ -476,7 +777,8 @@ class ShapeEditor:
 
     def save_current(self) -> None:
         self.aois = normalize_aois(self.aois)
-        self.store["images"][self.current_image_path().name] = aois_to_record(self.aois)
+        image_path = self.current_image_path()
+        self.store["images"][image_path.name] = with_image_metadata(aois_to_record(self.aois), image_path)
         save_store(self.store)
 
     def norm_pos(self, event: Any) -> tuple[float, float]:
@@ -570,6 +872,9 @@ class ShapeEditor:
             if idx == self.selected:
                 for hx, hy in [(x0, y0), (x1, y0), (x0, y1), (x1, y1)]:
                     self.canvas.create_rectangle(hx - self.HANDLE_SIZE, hy - self.HANDLE_SIZE, hx + self.HANDLE_SIZE, hy + self.HANDLE_SIZE, fill=color, outline="white")
+                center_x = x0 + (x1 - x0) / 2.0
+                center_y = y0 + (y1 - y0) / 2.0
+                self.canvas.create_oval(center_x - 4, center_y - 4, center_x + 4, center_y + 4, fill="white", outline="black")
         stack = "Stack bottom->top: " + " < ".join(
             f"{idx}:{aoi.aoi_id}" for idx, aoi in enumerate(normalize_aois(self.aois)) if not aoi.is_background
         )
@@ -684,6 +989,8 @@ class ShapeEditor:
             self.mode = "select"
             self.render()
             return
+        if self.drag_action is not None:
+            self.mark_selected_adjusted()
         self.drag_start = None
         self.drag_action = None
         self.original_box = None
@@ -696,6 +1003,15 @@ class ShapeEditor:
         if 0 <= self.selected < len(self.aois):
             return self.aois[self.selected]
         return None
+
+    def mark_selected_adjusted(self) -> None:
+        aoi = self.selected_aoi()
+        if aoi is None or aoi.is_background:
+            return
+        if aoi.method == LIMITED_RADIUS_METHOD:
+            aoi.method = "manual_adjusted_limited_radius"
+        elif not aoi.method:
+            aoi.method = "manual"
 
     def resize_selected(self, factor: float) -> None:
         aoi = self.selected_aoi()
@@ -718,6 +1034,7 @@ class ShapeEditor:
                 for px, py in aoi.points
             ]
             update_polygon_bbox(aoi)
+        self.mark_selected_adjusted()
         self.render()
 
     def nudge_selected(self, dx: float, dy: float) -> None:
@@ -732,6 +1049,7 @@ class ShapeEditor:
             actual_dy = aoi.y - old_y
             aoi.points = [(clamp01(px + actual_dx), clamp01(py + actual_dy)) for px, py in aoi.points]
             update_polygon_bbox(aoi)
+        self.mark_selected_adjusted()
         self.render()
 
     def move_selected_layer(self, target: str) -> None:
@@ -850,7 +1168,7 @@ def main() -> None:
         store = ensure_records(images, args.k, overwrite=args.overwrite, from_legacy_seeds=args.from_legacy_seeds)
         write_outputs(images, store, args.k)
     elif args.command == "batch":
-        store = load_store()
+        store = ensure_records(images, args.k, overwrite=False)
         write_outputs(images, store, args.k)
     elif args.command == "edit":
         store = ensure_records(images, args.k, overwrite=False)

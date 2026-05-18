@@ -1,0 +1,3 @@
+trial_index,image_file,samples,duration_s,inside_image_fraction,median_x,median_y,image_path_found
+1,P002.ppm,664,11.05,0.9563,-58.07,-17.0,/Users/goldi/Documents/1-Uni-Unterlagen/MEICogSci/Assignments/Eyetracking Project/IRII-Project/input/practice/images/P002.ppm
+2,P001.ppm,635,10.567,1.0,-62.0,-96.0,/Users/goldi/Documents/1-Uni-Unterlagen/MEICogSci/Assignments/Eyetracking Project/IRII-Project/input/practice/images/P001.ppm

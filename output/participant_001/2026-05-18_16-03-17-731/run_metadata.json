@@ -1,0 +1,13 @@
+{
+  "check_rate": 0.15,
+  "condition_aware_mismatch_checks": true,
+  "counterbalance_offset": 0,
+  "fixation_duration_s": 1.25,
+  "main_check_trials": "2",
+  "mode": "real",
+  "n_main_trials": 2,
+  "n_practice_trials": 2,
+  "participant": "001",
+  "random_seed": 2916604895,
+  "session": "001"
+}
