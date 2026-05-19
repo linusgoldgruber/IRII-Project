@@ -1474,8 +1474,7 @@ def collect_mismatch_check(
                 quit_hint.draw()
             win.flip()
 
-            keys = event.getKeys()
-            appended_text_event = bool(typed_text)
+            keys = event.getKeys(keyList=["return", "enter", "backspace", "q"])
             if typed_text:
                 text_chars.extend(typed_text)
                 typed_text.clear()
@@ -1502,20 +1501,6 @@ def collect_mismatch_check(
                 elif key == "backspace":
                     if text_chars:
                         text_chars.pop()
-                elif not appended_text_event:
-                    key_text = {
-                        "space": " ",
-                        "comma": ",",
-                        "period": ".",
-                        "minus": "-",
-                        "slash": "/",
-                        "apostrophe": "'",
-                        "semicolon": ";",
-                    }.get(key)
-                    if key_text is not None:
-                        text_chars.append(key_text)
-                    elif len(key) == 1:
-                        text_chars.append(key)
     finally:
         win.winHandle.remove_handlers(on_text=on_text)
 
