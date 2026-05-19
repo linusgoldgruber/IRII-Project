@@ -1228,6 +1228,7 @@ def show_image_until_continue(
 
     raw_cursor_points: list[tuple[float, float, float, float]] = []
     first_f_session: float | None = None
+    last_monitor_print_session = onset_session
 
     if record_cursor_samples:
         x0, y0 = mouse.getPos()
@@ -1285,6 +1286,22 @@ def show_image_until_continue(
             gaze_y_pix = float(gaze_y) * float(win.size[1])
             sample_unix = time.time()
             raw_cursor_points.append((sample_session, sample_unix, gaze_x_pix, gaze_y_pix))
+            if sample_session - last_monitor_print_session >= 1.0:
+                if len(raw_cursor_points) >= 2:
+                    prev_x, prev_y = raw_cursor_points[-2][2], raw_cursor_points[-2][3]
+                    movement_px = math.hypot(gaze_x_pix - prev_x, gaze_y_pix - prev_y)
+                else:
+                    movement_px = 0.0
+                print(
+                    "LIVE_GAZE "
+                    f"trial={trial_index} id={trial_id} "
+                    f"t={sample_session - onset_session:.1f}s "
+                    f"samples={len(raw_cursor_points)} "
+                    f"xy=({gaze_x_pix:.0f},{gaze_y_pix:.0f}) "
+                    f"movement_px={movement_px:.1f}",
+                    flush=True,
+                )
+                last_monitor_print_session = sample_session
 
         keys = event.getKeys(keyList=[continue_key, "q", "f"])
         now_session = session_clock.getTime()
