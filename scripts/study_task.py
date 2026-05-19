@@ -4,6 +4,7 @@ import csv
 import hashlib
 import json
 import math
+import platform
 import random
 import re
 import sys
@@ -50,34 +51,38 @@ _ORIGINAL_TEXT_STIM = visual.TextStim
 _ORIGINAL_SLIDER = visual.Slider
 
 
-def bundled_sans_font_file() -> Path | None:
-    candidates = [
-        Path(sys.prefix) / "lib",
-        Path(__file__).resolve().parents[1] / ".venv" / "lib",
-    ]
-    for base in candidates:
-        for font_path in base.glob("python*/site-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSans.ttf"):
-            if font_path.exists():
-                return font_path
-    return None
+def app_font_name() -> str:
+    # Avoid passing fontFiles on Windows. PsychoPy can crash while enumerating fonts
+    # if a bundled font path is injected globally; installed family names are safer.
+    if platform.system().lower().startswith("win"):
+        return "Arial"
+    return "DejaVu Sans"
 
 
-APP_FONT_FILE = bundled_sans_font_file()
-APP_FONT_NAME = "DejaVu Sans" if APP_FONT_FILE is not None else ""
-APP_FONT_FILES = (str(APP_FONT_FILE),) if APP_FONT_FILE is not None else ()
+APP_FONT_NAME = app_font_name()
 
 
 def safe_text_stim(*args, **kwargs):
     kwargs.setdefault("font", APP_FONT_NAME)
-    if APP_FONT_FILES:
-        kwargs.setdefault("fontFiles", APP_FONT_FILES)
-    return _ORIGINAL_TEXT_STIM(*args, **kwargs)
+    try:
+        return _ORIGINAL_TEXT_STIM(*args, **kwargs)
+    except Exception:
+        fallback_kwargs = dict(kwargs)
+        fallback_kwargs.pop("font", None)
+        fallback_kwargs.pop("fontFiles", None)
+        return _ORIGINAL_TEXT_STIM(*args, **fallback_kwargs)
 
 
 def safe_slider(*args, **kwargs):
     if not kwargs.get("font") or kwargs.get("font") == "Helvetica Bold":
         kwargs["font"] = APP_FONT_NAME
-    return _ORIGINAL_SLIDER(*args, **kwargs)
+    try:
+        return _ORIGINAL_SLIDER(*args, **kwargs)
+    except Exception:
+        fallback_kwargs = dict(kwargs)
+        fallback_kwargs.pop("font", None)
+        fallback_kwargs.pop("fontFiles", None)
+        return _ORIGINAL_SLIDER(*args, **fallback_kwargs)
 
 
 visual.TextStim = safe_text_stim
