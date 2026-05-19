@@ -1,0 +1,2 @@
+run_id,phase,participant,session,language,trial_index,stimulus_id,counterbalance_offset,preferred_description_condition,description_condition,metadata_condition,description,image_file,original_filename,original_style_folder,original_relative_path
+real_001_s001_2026-05-19_01-54-30-302,main,001,001,en,1,043,0,congruent,congruent,congruent,A reclining figure supports the head on the arm. The body is drawn in dark lines and lies compactly on a light ground.,043.jpg,woman_with_dead_child_0295.jpg,expressionism,expressionism/woman_with_dead_child_0295.jpg

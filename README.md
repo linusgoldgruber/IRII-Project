@@ -89,6 +89,42 @@ the base condition columns; parallel English versions are stored in
 `condition_congruent_en`, `condition_semi_congruent_en`, and
 `condition_incongruent_en`.
 
+To review and edit those prompt texts next to each artwork image, run:
+
+```bash
+python scripts/prompt_editor.py
+```
+
+The prompt editor opens `input/main/stimuli.csv`, shows the images in stimulus
+order, and lets you edit the German and English congruent, semi-congruent, and
+incongruent prompts. `Save CSV` writes directly back to
+`input/main/stimuli.csv`. The editor creates a timestamped backup in
+`input/main/stimuli_backups/` on launch.
+
+To run a model-assisted prompt audit, set an OpenAI API key and run:
+
+```bash
+export OPENAI_API_KEY=...
+python scripts/audit_stimulus_prompts.py
+```
+
+The audit writes a timestamped folder under `output/prompt_audit/` with:
+
+- `review.html`: image-by-image review packet
+- `suggestions.csv`: current prompts, model inventory, and suggested prompts
+- `audit.jsonl`: raw row-by-row audit data
+
+The audit does not modify `input/main/stimuli.csv`. To accept suggestions,
+open `suggestions.csv`, set `approved` to `yes` only for rows you want to use,
+then run:
+
+```bash
+python scripts/audit_stimulus_prompts.py --apply-approved output/prompt_audit/<timestamp>/suggestions.csv
+```
+
+Applying approved rows creates a backup in `input/main/stimuli_backups/` before
+writing to `input/main/stimuli.csv`.
+
 The prepared main bank is capped at 80 images. The task samples from that bank
 without replacement for the requested run length.
 

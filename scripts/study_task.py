@@ -259,6 +259,7 @@ def load_trials(path: Path, language: str = "de") -> list[dict[str, str]]:
                 "language": language,
                 "description": (row.get(description_field) or "").strip(),
                 "image_file": (row.get("image_file") or "").strip(),
+                "description_condition": (row.get("description_condition") or "").strip(),
             }
             for row in reader
         ]

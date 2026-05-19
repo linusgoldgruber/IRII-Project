@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Stimulus Prompt Audit</title>
+<style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 24px; background: #f7f7f7; color: #111; }
+.card { display: grid; grid-template-columns: minmax(260px, 34vw) 1fr; gap: 20px; background: white; border: 1px solid #ddd; border-radius: 6px; padding: 16px; margin-bottom: 18px; }
+.media img { width: 100%; max-height: 620px; object-fit: contain; background: #222; }
+h2 { margin-top: 0; }
+.prompts { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+dt { font-weight: 700; margin-top: 10px; }
+dd { margin-left: 0; white-space: pre-wrap; }
+@media (max-width: 900px) { .card, .prompts { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<h1>Stimulus Prompt Audit</h1>
+<p>Approve suggested rows in <code>suggestions.csv</code> by setting <code>approved</code> to <code>yes</code>, then apply with the script.</p>
+
+            <article class="card">
+              <div class="media">
+                <img src="../../input/main/images/001.jpg" alt="001.jpg">
+              </div>
+              <div class="content">
+                <h2>001 - 001.jpg</h2>
+                <p><b>Status:</b> not_audited |
+                   <b>Confidence:</b>  |
+                   <b>Issues:</b> </p>
+                <p><b>Metadata:</b>  - bird of the spirit
+                   (abstract-expressionism)</p>
+                <p><b>High confidence visible:</b> </p>
+                <p><b>Medium confidence likely:</b> </p>
+                <p><b>Do not mention:</b> No model audit was run for this row.</p>
+                <p><b>Audit notes:</b> Offline packet only. Run with OPENAI_API_KEY for automated suggestions.</p>
+                <div class="prompts"><section><h4>Current</h4><dl><dt>congruent</dt><dd>Eine kleine helle Form liegt in einer dunklen ovalen Fläche auf orangebraunem Grund. Die Mitte wirkt betont, während feine Striche nach außen laufen.</dd><dt>semi_congruent</dt><dd>Eine kleine helle Form liegt in einer dunklen runden Fläche auf orangebraunem Grund. Die Mitte bleibt auffällig, während feine Striche nach außen laufen.</dd><dt>incongruent</dt><dd>Eine dunkle runde Fläche liegt klar am unteren Rand auf gelblichem Grund. Mehrere helle Formen verteilen sich außen, während die Mitte eher leer bleibt.</dd><dt>congruent_en</dt><dd>A small light shape lies inside a dark oval area on an orange-brown ground. The center feels emphasized while fine strokes run outward.</dd><dt>semi_congruent_en</dt><dd>A small light shape lies inside a dark round area on an orange-brown ground. The center remains noticeable while fine strokes run outward.</dd><dt>incongruent_en</dt><dd>A dark round area lies clearly near the lower edge on a yellowish ground. Several light shapes spread around the outside, while the center remains rather empty.</dd></dl></section><section><h4>Suggested</h4><dl><dt>congruent</dt><dd>Eine kleine helle Form liegt in einer dunklen ovalen Fläche auf orangebraunem Grund. Die Mitte wirkt betont, während feine Striche nach außen laufen.</dd><dt>semi_congruent</dt><dd>Eine kleine helle Form liegt in einer dunklen runden Fläche auf orangebraunem Grund. Die Mitte bleibt auffällig, während feine Striche nach außen laufen.</dd><dt>incongruent</dt><dd>Eine dunkle runde Fläche liegt klar am unteren Rand auf gelblichem Grund. Mehrere helle Formen verteilen sich außen, während die Mitte eher leer bleibt.</dd><dt>congruent_en</dt><dd>A small light shape lies inside a dark oval area on an orange-brown ground. The center feels emphasized while fine strokes run outward.</dd><dt>semi_congruent_en</dt><dd>A small light shape lies inside a dark round area on an orange-brown ground. The center remains noticeable while fine strokes run outward.</dd><dt>incongruent_en</dt><dd>A dark round area lies clearly near the lower edge on a yellowish ground. Several light shapes spread around the outside, while the center remains rather empty.</dd></dl></section></div>
+              </div>
+            </article>
+            
+            <article class="card">
+              <div class="media">
+                <img src="../../input/main/images/002.jpg" alt="002.jpg">
+              </div>
+              <div class="content">
+                <h2>002 - 002.jpg</h2>
+                <p><b>Status:</b> not_audited |
+                   <b>Confidence:</b>  |
+                   <b>Issues:</b> </p>
+                <p><b>Metadata:</b> Maria Bozoky - Carnation in a Blue Vase
+                   (expressionism)</p>
+                <p><b>High confidence visible:</b> </p>
+                <p><b>Medium confidence likely:</b> </p>
+                <p><b>Do not mention:</b> No model audit was run for this row.</p>
+                <p><b>Audit notes:</b> Offline packet only. Run with OPENAI_API_KEY for automated suggestions.</p>
+                <div class="prompts"><section><h4>Current</h4><dl><dt>congruent</dt><dd>Eine pinke Blüte steht in einer blauen Glasvase vor braunem Hintergrund. Vase, Blüte und helle Tischfläche sind klar voneinander getrennt.</dd><dt>semi_congruent</dt><dd>Eine helle Blütenform steht in einem blauen Gefäß vor braunem Hintergrund. Die oberen und unteren Formen sind klar voneinander getrennt.</dd><dt>incongruent</dt><dd>Eine rote Blüte steht in einer schmalen grünen Vase vor hellem Hintergrund. Vase und Blüte liegen weit links und die Tischfläche ist kaum sichtbar.</dd><dt>congruent_en</dt><dd>A pink flower stands in a blue glass vase against a brown background. Vase, flower, and light tabletop are clearly separated.</dd><dt>semi_congruent_en</dt><dd>A light flower-like shape stands in a blue vessel against a brown background. The upper and lower forms are clearly separated.</dd><dt>incongruent_en</dt><dd>A red flower stands in a narrow green vase against a light background. Vase and flower sit far to the left, and the tabletop is barely visible.</dd></dl></section><section><h4>Suggested</h4><dl><dt>congruent</dt><dd>Eine pinke Blüte steht in einer blauen Glasvase vor braunem Hintergrund. Vase, Blüte und helle Tischfläche sind klar voneinander getrennt.</dd><dt>semi_congruent</dt><dd>Eine helle Blütenform steht in einem blauen Gefäß vor braunem Hintergrund. Die oberen und unteren Formen sind klar voneinander getrennt.</dd><dt>incongruent</dt><dd>Eine rote Blüte steht in einer schmalen grünen Vase vor hellem Hintergrund. Vase und Blüte liegen weit links und die Tischfläche ist kaum sichtbar.</dd><dt>congruent_en</dt><dd>A pink flower stands in a blue glass vase against a brown background. Vase, flower, and light tabletop are clearly separated.</dd><dt>semi_congruent_en</dt><dd>A light flower-like shape stands in a blue vessel against a brown background. The upper and lower forms are clearly separated.</dd><dt>incongruent_en</dt><dd>A red flower stands in a narrow green vase against a light background. Vase and flower sit far to the left, and the tabletop is barely visible.</dd></dl></section></div>
+              </div>
+            </article>
+            
+</body>
+</html>
