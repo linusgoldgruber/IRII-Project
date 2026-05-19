@@ -1,2 +1,0 @@
-run_id,phase,participant,session,trial_index,stimulus_id,counterbalance_offset,preferred_description_condition,description_condition,metadata_condition,description,image_file,original_filename,original_style_folder,original_relative_path
-real_001_s001_2026-05-18_16-36-57-938,main,001,001,1,056,0,ambiguous,congruent,congruent,Ein grauer Hinterkopf oder eine verhüllte Büste steht vor dunkler Wand. Die helle geflochtene Fläche fällt über den Kopf.,056.jpg,eve_the_only_one_left_to_us_0171.jpg,surrealism,surrealism/eve_the_only_one_left_to_us_0171.jpg

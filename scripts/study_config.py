@@ -4,7 +4,7 @@ Edit values here to quickly tune experiment behavior without touching task logic
 """
 
 # Trial counts
-N_TRIALS_REAL = 60
+N_TRIALS_REAL = 80
 N_TRIALS_RG = 60
 N_TRIALS_TEST = 3
 N_PRACTICE_TRIALS = 2
@@ -15,7 +15,7 @@ CHECK_RATE = 0.10
 MIN_IMAGE_VIEW_S = 8.0
 FIXATION_DURATION_S = 1.25
 CONTINUE_KEY_BUFFER_S = 0.5
-BREAK_AFTER_TRIALS = (20, 40)
+BREAK_AFTER_TRIALS = (20, 40, 60)
 BREAK_MIN_S = 20.0
 
 # Alpha/prototype behavior

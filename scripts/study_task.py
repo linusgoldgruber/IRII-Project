@@ -523,6 +523,7 @@ def build_trial_sequence(base_trials: list[dict[str, str]], n_trials: int) -> li
 
 
 def choose_check_trials(trials: list[dict[str, str]], rate: float) -> set[int]:
+    """Randomly sample explanation checks; rate is an average, not a fixed interval."""
     eligible_indices = [
         idx
         for idx, trial in enumerate(trials, start=1)
@@ -1421,6 +1422,15 @@ def collect_mismatch_check(
     onset_session = session_clock.getTime()
     onset_unix = time.time()
 
+    background = visual.Rect(
+        win,
+        width=10,
+        height=10,
+        pos=(0, 0),
+        fillColor="#777777",
+        lineColor="#777777",
+        units="height",
+    )
     question_stim = visual.TextStim(
         win,
         text=question,
@@ -1465,6 +1475,7 @@ def collect_mismatch_check(
             now_session = session_clock.getTime()
             quit_hint.text = quit_state.active_message(now_session)
 
+            background.draw()
             progress_stim.draw()
             question_stim.draw()
             answer_stim.text = "".join(text_chars) if text_chars else "_"
@@ -1474,7 +1485,7 @@ def collect_mismatch_check(
                 quit_hint.draw()
             win.flip()
 
-            keys = event.getKeys(keyList=["return", "enter", "backspace", "q"])
+            keys = event.getKeys(keyList=["return", "enter", "num_enter", "backspace", "q"])
             if typed_text:
                 text_chars.extend(typed_text)
                 typed_text.clear()
@@ -1485,7 +1496,7 @@ def collect_mismatch_check(
             quit_state.process_keys(keys, now_session)
 
             for key in keys:
-                if key == "return":
+                if key in {"return", "enter", "num_enter"}:
                     answer = "".join(text_chars).strip()
                     if answer:
                         offset_session = session_clock.getTime()
@@ -1755,22 +1766,10 @@ def run_phase(
 ) -> None:
     phase_language = (trials[0].get("language") if trials else "de") or "de"
     description_label = "Description" if phase_language == "en" else "Beschreibung"
-    rating_question = (
-        "How well do you feel the description fits the image you were presented with?"
-        if phase_language == "en"
-        else "Wie gut passt die Beschreibung zu dem Bild, das du gesehen hast?"
-    )
-    rating_controls = (
-        "Hold LEFT/RIGHT to move the slider. Press SPACE to confirm."
-        if phase_language == "en"
-        else "Mit LINKS/RECHTS den Regler bewegen. Mit SPACE bestätigen."
-    )
-    rating_labels = (
-        ["Doesn't fit at all", "", "", "", "Fits perfectly"]
-        if phase_language == "en"
-        else ["Passt gar nicht", "", "", "", "Passt perfekt"]
-    )
-    confirm_text = "SPACE = Confirm" if phase_language == "en" else "SPACE = Bestätigen"
+    rating_question = "How well do you feel the description fits the image you were presented with?"
+    rating_controls = "Hold LEFT/RIGHT to move the slider. Press SPACE to confirm."
+    rating_labels = ["Doesn't fit at all", "", "", "", "Fits perfectly"]
+    confirm_text = "SPACE = Confirm"
     check_question = (
         "Briefly explain why you chose that rating for how well the description fits the image."
         if phase_language == "en"

@@ -6,6 +6,7 @@ __pycache__/
 # experiment outputs
 runs/
 data/
+output/
 
 # local secrets/config
 *.env

@@ -1,7 +1,0 @@
-trial_index,image_file,samples,duration_s,inside_image_fraction,median_x,median_y,image_path_found
-1,071.jpg,647,10.767,0.9737,-63.0,205.86,/Users/goldi/Documents/1-Uni-Unterlagen/MEICogSci/Assignments/Eyetracking Project/IRII-Project/input/main/images/071.jpg
-2,060.jpg,662,11.017,0.9819,-17.87,-115.67,/Users/goldi/Documents/1-Uni-Unterlagen/MEICogSci/Assignments/Eyetracking Project/IRII-Project/input/main/images/060.jpg
-3,068.jpg,634,10.55,0.9322,-25.0,-30.0,/Users/goldi/Documents/1-Uni-Unterlagen/MEICogSci/Assignments/Eyetracking Project/IRII-Project/input/main/images/068.jpg
-4,027.jpg,646,10.75,1.0,-20.04,2.0,/Users/goldi/Documents/1-Uni-Unterlagen/MEICogSci/Assignments/Eyetracking Project/IRII-Project/input/main/images/027.jpg
-5,006.jpg,656,10.917,1.0,9.2,-44.55,/Users/goldi/Documents/1-Uni-Unterlagen/MEICogSci/Assignments/Eyetracking Project/IRII-Project/input/main/images/006.jpg
-6,002.jpg,647,10.767,0.9258,-21.34,-105.1,/Users/goldi/Documents/1-Uni-Unterlagen/MEICogSci/Assignments/Eyetracking Project/IRII-Project/input/main/images/002.jpg

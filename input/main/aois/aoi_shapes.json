@@ -1835,6 +1835,596 @@
           "size_bytes": 355506
         }
       }
+    },
+    {
+      "archived_at_utc": "2026-05-19T15:07:32+00:00",
+      "image_file": "002.jpg",
+      "reason": "image file changed while keeping the same filename",
+      "record": {
+        "aois": [
+          {
+            "id": "BG",
+            "kind": "background",
+            "label": "non-AOI / background",
+            "locked": true,
+            "method": "non_aoi",
+            "source": "predefined-region initialization leaves unassigned space outside AOIs"
+          },
+          {
+            "h": 0.286704,
+            "id": "AOI1",
+            "kind": "ellipse",
+            "label": "operational region 1",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.263206,
+            "x": 0.051603,
+            "y": 0.122011
+          },
+          {
+            "h": 0.30905,
+            "id": "AOI2",
+            "kind": "ellipse",
+            "label": "operational region 2",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.18687,
+            "x": 0.372214,
+            "y": 0.568939
+          },
+          {
+            "h": 0.191732,
+            "id": "AOI3",
+            "kind": "ellipse",
+            "label": "operational region 3",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.194504,
+            "x": 0.227176,
+            "y": 0.116425
+          }
+        ],
+        "image_file": "002.jpg",
+        "image_fingerprint": {
+          "mtime_ns": 1778618288079971000,
+          "sha256": "3e19d87da54344739e23ce740e01ff9f62fb715b27cd717f4c7e81522edcb9a3",
+          "size_bytes": 59305
+        }
+      }
+    },
+    {
+      "archived_at_utc": "2026-05-19T15:07:32+00:00",
+      "image_file": "008.jpg",
+      "reason": "image file changed while keeping the same filename",
+      "record": {
+        "aois": [
+          {
+            "id": "BG",
+            "kind": "background",
+            "label": "non-AOI / background",
+            "locked": true,
+            "method": "non_aoi",
+            "source": "predefined-region initialization leaves unassigned space outside AOIs"
+          },
+          {
+            "h": 1.0,
+            "id": "AOI1",
+            "kind": "rect",
+            "label": "operational region 3",
+            "locked": false,
+            "method": "manual_adjusted_limited_radius",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 1.0,
+            "x": 0.0,
+            "y": 0.0
+          },
+          {
+            "h": 0.509901,
+            "id": "AOI2",
+            "kind": "rect",
+            "label": "operational region 1",
+            "locked": false,
+            "method": "manual_adjusted_limited_radius",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.354688,
+            "x": 0.110937,
+            "y": 0.15099
+          },
+          {
+            "h": 0.353394,
+            "id": "AOI3",
+            "kind": "rect",
+            "label": "operational region 2",
+            "locked": false,
+            "method": "manual_adjusted_limited_radius",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.254761,
+            "x": 0.615552,
+            "y": 0.136705
+          },
+          {
+            "h": 0.54703,
+            "id": "AOI4",
+            "kind": "rect",
+            "label": "AOI 4",
+            "locked": false,
+            "method": "manual",
+            "source": "",
+            "w": 0.178125,
+            "x": 0.504687,
+            "y": 0.45297
+          },
+          {
+            "h": 0.20297,
+            "id": "AOI5",
+            "kind": "ellipse",
+            "label": "AOI 5",
+            "locked": false,
+            "method": "manual",
+            "source": "",
+            "w": 0.13125,
+            "x": 0.375,
+            "y": 0.037129
+          }
+        ],
+        "image_file": "008.jpg",
+        "image_fingerprint": {
+          "mtime_ns": 1777563517167873979,
+          "sha256": "08017e4f1685ef67593b5a8ac3252cb8c8b1df4de1ff1401e77185e85408ca1a",
+          "size_bytes": 27283
+        }
+      }
+    },
+    {
+      "archived_at_utc": "2026-05-19T15:07:32+00:00",
+      "image_file": "009.jpg",
+      "reason": "image file changed while keeping the same filename",
+      "record": {
+        "aois": [
+          {
+            "id": "BG",
+            "kind": "background",
+            "label": "non-AOI / background",
+            "locked": true,
+            "method": "non_aoi",
+            "source": "predefined-region initialization leaves unassigned space outside AOIs"
+          },
+          {
+            "h": 0.381676,
+            "id": "AOI1",
+            "kind": "rect",
+            "label": "operational region 1",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.16046,
+            "x": 0.132414,
+            "y": 0.412514
+          },
+          {
+            "h": 0.147039,
+            "id": "AOI2",
+            "kind": "rect",
+            "label": "operational region 2",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.275402,
+            "x": 0.304828,
+            "y": 0.027039
+          },
+          {
+            "h": 0.158212,
+            "id": "AOI3",
+            "kind": "rect",
+            "label": "operational region 3",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.378851,
+            "x": 0.051954,
+            "y": 0.841788
+          }
+        ],
+        "image_file": "009.jpg",
+        "image_fingerprint": {
+          "mtime_ns": 1778618295460960000,
+          "sha256": "948f1a2b25cfbaf7c62fa39d7185713f123ebdc042430332fd28b6596c310b5d",
+          "size_bytes": 43873
+        }
+      }
+    },
+    {
+      "archived_at_utc": "2026-05-19T15:07:33+00:00",
+      "image_file": "023.jpg",
+      "reason": "image file changed while keeping the same filename",
+      "record": {
+        "aois": [
+          {
+            "id": "BG",
+            "kind": "background",
+            "label": "non-AOI / background",
+            "locked": true,
+            "method": "non_aoi",
+            "source": "predefined-region initialization leaves unassigned space outside AOIs"
+          },
+          {
+            "h": 0.225251,
+            "id": "AOI1",
+            "kind": "ellipse",
+            "label": "operational region 1",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.413333,
+            "x": 0.545366,
+            "y": 0.244916
+          },
+          {
+            "h": 0.30905,
+            "id": "AOI2",
+            "kind": "ellipse",
+            "label": "operational region 2",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.348293,
+            "x": 0.138862,
+            "y": 0.066145
+          },
+          {
+            "h": 0.242011,
+            "id": "AOI3",
+            "kind": "ellipse",
+            "label": "operational region 3",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.250732,
+            "x": 0.496585,
+            "y": 0.054972
+          }
+        ],
+        "image_file": "023.jpg",
+        "image_fingerprint": {
+          "mtime_ns": 1778617439960716000,
+          "sha256": "b3b4de46bed2c235d70da18a9eea08ae4d1dc340ab2983486c9c6cc7d7499a8e",
+          "size_bytes": 68583
+        }
+      }
+    },
+    {
+      "archived_at_utc": "2026-05-19T15:07:33+00:00",
+      "image_file": "042.jpg",
+      "reason": "image file changed while keeping the same filename",
+      "record": {
+        "aois": [
+          {
+            "id": "BG",
+            "kind": "background",
+            "label": "non-AOI / background",
+            "locked": true,
+            "method": "non_aoi",
+            "source": "predefined-region initialization leaves unassigned space outside AOIs"
+          },
+          {
+            "h": 0.387263,
+            "id": "AOI1",
+            "kind": "ellipse",
+            "label": "operational region 1",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.62,
+            "x": 0.105299,
+            "y": 0.0
+          },
+          {
+            "h": 0.236425,
+            "id": "AOI2",
+            "kind": "ellipse",
+            "label": "operational region 2",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.225299,
+            "x": 0.028376,
+            "y": 0.406927
+          },
+          {
+            "h": 0.197318,
+            "id": "AOI3",
+            "kind": "ellipse",
+            "label": "operational region 3",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.33641,
+            "x": 0.566838,
+            "y": 0.0
+          }
+        ],
+        "image_file": "042.jpg",
+        "image_fingerprint": {
+          "mtime_ns": 1778617441086595000,
+          "sha256": "a90b26acf5775f78d7b163f52d218dd28b7d6c4ebb1a09b4959a7fef20603a40",
+          "size_bytes": 80681
+        }
+      }
+    },
+    {
+      "archived_at_utc": "2026-05-19T15:07:33+00:00",
+      "image_file": "044.jpg",
+      "reason": "image file changed while keeping the same filename",
+      "record": {
+        "aois": [
+          {
+            "id": "BG",
+            "kind": "background",
+            "label": "non-AOI / background",
+            "locked": true,
+            "method": "non_aoi",
+            "source": "predefined-region initialization leaves unassigned space outside AOIs"
+          },
+          {
+            "h": 0.440294,
+            "id": "AOI1",
+            "kind": "ellipse",
+            "label": "operational region 1",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.253184,
+            "x": 0.401341,
+            "y": 0.048235
+          },
+          {
+            "h": 0.352059,
+            "id": "AOI2",
+            "kind": "ellipse",
+            "label": "operational region 2",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.247598,
+            "x": 0.110838,
+            "y": 0.511471
+          },
+          {
+            "h": 0.337353,
+            "id": "AOI3",
+            "kind": "ellipse",
+            "label": "operational region 3",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.264358,
+            "x": 0.663911,
+            "y": 0.46
+          }
+        ],
+        "image_file": "044.jpg",
+        "image_fingerprint": {
+          "mtime_ns": 1778618302495358000,
+          "sha256": "794720d76c7ebba54f8a117ec0154b95929641501daef38bd049d4c28e49df5f",
+          "size_bytes": 39477
+        }
+      }
+    },
+    {
+      "archived_at_utc": "2026-05-19T15:07:33+00:00",
+      "image_file": "047.jpg",
+      "reason": "image file changed while keeping the same filename",
+      "record": {
+        "aois": [
+          {
+            "id": "BG",
+            "kind": "background",
+            "label": "non-AOI / background",
+            "locked": true,
+            "method": "non_aoi",
+            "source": "predefined-region initialization leaves unassigned space outside AOIs"
+          },
+          {
+            "h": 0.5,
+            "id": "AOI1",
+            "kind": "ellipse",
+            "label": "AOI 1",
+            "locked": false,
+            "method": "manual",
+            "source": "",
+            "w": 0.969697,
+            "x": 0.012987,
+            "y": 0.271429
+          }
+        ],
+        "image_file": "047.jpg",
+        "image_fingerprint": {
+          "mtime_ns": 1777564481676483989,
+          "sha256": "e3d86572ad21589e9d9221c566765749a447c5eeef76fd51cfe963b3c10c6987",
+          "size_bytes": 11653
+        }
+      }
+    },
+    {
+      "archived_at_utc": "2026-05-19T15:07:33+00:00",
+      "image_file": "051.jpg",
+      "reason": "image file changed while keeping the same filename",
+      "record": {
+        "aois": [
+          {
+            "id": "BG",
+            "kind": "background",
+            "label": "non-AOI / background",
+            "locked": true,
+            "method": "non_aoi",
+            "source": "predefined-region initialization leaves unassigned space outside AOIs"
+          },
+          {
+            "h": 0.152626,
+            "id": "AOI1",
+            "kind": "rect",
+            "label": "operational region 1",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.284082,
+            "x": 0.286531,
+            "y": 0.228156
+          },
+          {
+            "h": 0.147039,
+            "id": "AOI2",
+            "kind": "rect",
+            "label": "operational region 2",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.426939,
+            "x": 0.480408,
+            "y": 0.852961
+          },
+          {
+            "h": 0.180559,
+            "id": "AOI3",
+            "kind": "ellipse",
+            "label": "operational region 3",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.314694,
+            "x": 0.0,
+            "y": 0.703017
+          }
+        ],
+        "image_file": "051.jpg",
+        "image_fingerprint": {
+          "mtime_ns": 1778617451271759000,
+          "sha256": "2ef80de64f4000426741c9e77f5c8977dedbb166654b6dbfe2c6c5754a6c7b72",
+          "size_bytes": 43519
+        }
+      }
+    },
+    {
+      "archived_at_utc": "2026-05-19T15:07:33+00:00",
+      "image_file": "057.jpg",
+      "reason": "image file changed while keeping the same filename",
+      "record": {
+        "aois": [
+          {
+            "id": "BG",
+            "kind": "background",
+            "label": "non-AOI / background",
+            "locked": true,
+            "method": "non_aoi",
+            "source": "predefined-region initialization leaves unassigned space outside AOIs"
+          },
+          {
+            "h": 0.269944,
+            "id": "AOI1",
+            "kind": "ellipse",
+            "label": "operational region 1",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.452881,
+            "x": 0.044746,
+            "y": 0.351061
+          },
+          {
+            "h": 0.236425,
+            "id": "AOI2",
+            "kind": "ellipse",
+            "label": "operational region 2",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.291864,
+            "x": 0.409153,
+            "y": 0.362235
+          },
+          {
+            "h": 0.12,
+            "id": "AOI3",
+            "kind": "rect",
+            "label": "operational region 3",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.62,
+            "x": 0.0,
+            "y": 0.876201
+          }
+        ],
+        "image_file": "057.jpg",
+        "image_fingerprint": {
+          "mtime_ns": 1778617455737236000,
+          "sha256": "27d9212ab122daacc0ba341e19f291f21e8f55743a92227f19eb54c8d81915d3",
+          "size_bytes": 34538
+        }
+      }
+    },
+    {
+      "archived_at_utc": "2026-05-19T15:07:33+00:00",
+      "image_file": "065.jpg",
+      "reason": "image file changed while keeping the same filename",
+      "record": {
+        "aois": [
+          {
+            "id": "BG",
+            "kind": "background",
+            "label": "non-AOI / background",
+            "locked": true,
+            "method": "non_aoi",
+            "source": "predefined-region initialization leaves unassigned space outside AOIs"
+          },
+          {
+            "h": 0.398471,
+            "id": "AOI1",
+            "kind": "ellipse",
+            "label": "operational region 1",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.582793,
+            "x": 0.0,
+            "y": 0.0
+          },
+          {
+            "h": 0.309299,
+            "id": "AOI2",
+            "kind": "ellipse",
+            "label": "operational region 2",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.370503,
+            "x": 0.094078,
+            "y": 0.265732
+          },
+          {
+            "h": 0.258344,
+            "id": "AOI3",
+            "kind": "ellipse",
+            "label": "operational region 3",
+            "locked": false,
+            "method": "predefined_region_with_margin",
+            "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+            "w": 0.214078,
+            "x": 0.462793,
+            "y": 0.686115
+          }
+        ],
+        "image_file": "065.jpg",
+        "image_fingerprint": {
+          "mtime_ns": 1777563280119251966,
+          "sha256": "e7c67fe5d620467c0e338251e58546f2c892eab709c2fb24a50c3df02f567f26",
+          "size_bytes": 27839
+        }
+      }
     }
   ],
   "images": {
@@ -1910,7 +2500,7 @@
           "locked": false,
           "method": "predefined_region_with_margin",
           "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
-          "w": 0.263206,
+          "w": 0.247939,
           "x": 0.051603,
           "y": 0.122011
         },
@@ -1941,9 +2531,9 @@
       ],
       "image_file": "002.jpg",
       "image_fingerprint": {
-        "mtime_ns": 1778618288079971000,
-        "sha256": "3e19d87da54344739e23ce740e01ff9f62fb715b27cd717f4c7e81522edcb9a3",
-        "size_bytes": 59305
+        "mtime_ns": 1779140249757348859,
+        "sha256": "27b8e501ab23de32b6cb0d7a50713c124ccdec781529e4c41fd46fbfdee92e53",
+        "size_bytes": 1004969
       }
     },
     "003.jpg": {
@@ -2845,71 +3435,47 @@
           "source": "predefined-region initialization leaves unassigned space outside AOIs"
         },
         {
-          "h": 1.0,
+          "h": 0.62,
           "id": "AOI1",
-          "kind": "rect",
-          "label": "operational region 3",
-          "locked": false,
-          "method": "manual_adjusted_limited_radius",
-          "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
-          "w": 1.0,
-          "x": 0.0,
-          "y": 0.0
-        },
-        {
-          "h": 0.509901,
-          "id": "AOI2",
           "kind": "rect",
           "label": "operational region 1",
           "locked": false,
-          "method": "manual_adjusted_limited_radius",
+          "method": "predefined_region_with_margin",
           "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
-          "w": 0.354688,
-          "x": 0.110937,
-          "y": 0.15099
+          "w": 0.264358,
+          "x": 0.457207,
+          "y": 0.38
         },
         {
-          "h": 0.353394,
-          "id": "AOI3",
+          "h": 0.133097,
+          "id": "AOI2",
           "kind": "rect",
           "label": "operational region 2",
           "locked": false,
-          "method": "manual_adjusted_limited_radius",
+          "method": "predefined_region_with_margin",
           "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
-          "w": 0.254761,
-          "x": 0.615552,
-          "y": 0.136705
+          "w": 0.331397,
+          "x": 0.334302,
+          "y": 0.145841
         },
         {
-          "h": 0.54703,
-          "id": "AOI4",
+          "h": 0.62,
+          "id": "AOI3",
           "kind": "rect",
-          "label": "AOI 4",
+          "label": "operational region 3",
           "locked": false,
-          "method": "manual",
-          "source": "",
-          "w": 0.178125,
-          "x": 0.504687,
-          "y": 0.45297
-        },
-        {
-          "h": 0.20297,
-          "id": "AOI5",
-          "kind": "ellipse",
-          "label": "AOI 5",
-          "locked": false,
-          "method": "manual",
-          "source": "",
-          "w": 0.13125,
-          "x": 0.375,
-          "y": 0.037129
+          "method": "predefined_region_with_margin",
+          "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+          "w": 0.58,
+          "x": 0.16,
+          "y": 0.0
         }
       ],
       "image_file": "008.jpg",
       "image_fingerprint": {
-        "mtime_ns": 1777563517167873979,
-        "sha256": "08017e4f1685ef67593b5a8ac3252cb8c8b1df4de1ff1401e77185e85408ca1a",
-        "size_bytes": 27283
+        "mtime_ns": 1779140249756759774,
+        "sha256": "53faadb81244fbd3f2b81004c691ea80d5f86b6d1da57932babc17ddd4b53c4f",
+        "size_bytes": 85444
       }
     },
     "009.jpg": {
@@ -2923,16 +3489,16 @@
           "source": "predefined-region initialization leaves unassigned space outside AOIs"
         },
         {
-          "h": 0.381676,
+          "h": 0.348156,
           "id": "AOI1",
           "kind": "rect",
           "label": "operational region 1",
           "locked": false,
           "method": "predefined_region_with_margin",
           "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
-          "w": 0.16046,
-          "x": 0.132414,
-          "y": 0.412514
+          "w": 0.12,
+          "x": 0.187273,
+          "y": 0.43486
         },
         {
           "h": 0.147039,
@@ -2942,28 +3508,28 @@
           "locked": false,
           "method": "predefined_region_with_margin",
           "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
-          "w": 0.275402,
-          "x": 0.304828,
+          "w": 0.273182,
+          "x": 0.300909,
           "y": 0.027039
         },
         {
-          "h": 0.158212,
+          "h": 0.253184,
           "id": "AOI3",
-          "kind": "rect",
+          "kind": "ellipse",
           "label": "operational region 3",
           "locked": false,
           "method": "predefined_region_with_margin",
           "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
-          "w": 0.378851,
-          "x": 0.051954,
-          "y": 0.841788
+          "w": 0.159545,
+          "x": 0.175909,
+          "y": 0.127598
         }
       ],
       "image_file": "009.jpg",
       "image_fingerprint": {
-        "mtime_ns": 1778618295460960000,
-        "sha256": "948f1a2b25cfbaf7c62fa39d7185713f123ebdc042430332fd28b6596c310b5d",
-        "size_bytes": 43873
+        "mtime_ns": 1779136435872678610,
+        "sha256": "dfa44dff6a216a6d16a6005cc8058e856836bd8f4c0e5d65bfa8c4d71af984d6",
+        "size_bytes": 8647941
       }
     },
     "010.jpg": {
@@ -7103,16 +7669,16 @@
           "source": "predefined-region initialization leaves unassigned space outside AOIs"
         },
         {
-          "h": 0.225251,
+          "h": 0.219665,
           "id": "AOI1",
-          "kind": "ellipse",
+          "kind": "rect",
           "label": "operational region 1",
           "locked": false,
           "method": "predefined_region_with_margin",
           "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
-          "w": 0.413333,
-          "x": 0.545366,
-          "y": 0.244916
+          "w": 0.445854,
+          "x": 0.537236,
+          "y": 0.23933
         },
         {
           "h": 0.30905,
@@ -7122,28 +7688,28 @@
           "locked": false,
           "method": "predefined_region_with_margin",
           "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
-          "w": 0.348293,
-          "x": 0.138862,
+          "w": 0.323902,
+          "x": 0.171382,
           "y": 0.066145
         },
         {
-          "h": 0.242011,
+          "h": 0.269944,
           "id": "AOI3",
           "kind": "ellipse",
           "label": "operational region 3",
           "locked": false,
           "method": "predefined_region_with_margin",
           "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
-          "w": 0.250732,
-          "x": 0.496585,
-          "y": 0.054972
+          "w": 0.315772,
+          "x": 0.455935,
+          "y": 0.060559
         }
       ],
       "image_file": "023.jpg",
       "image_fingerprint": {
-        "mtime_ns": 1778617439960716000,
-        "sha256": "b3b4de46bed2c235d70da18a9eea08ae4d1dc340ab2983486c9c6cc7d7499a8e",
-        "size_bytes": 68583
+        "mtime_ns": 1779140249770922882,
+        "sha256": "68177468ed2833bad0e443412fc8681a7dabc4a7524834823dcc9e78c8510217",
+        "size_bytes": 1357858
       }
     },
     "024.jpg": {
@@ -17569,47 +18135,47 @@
           "source": "predefined-region initialization leaves unassigned space outside AOIs"
         },
         {
-          "h": 0.387263,
+          "h": 0.331397,
           "id": "AOI1",
           "kind": "ellipse",
           "label": "operational region 1",
           "locked": false,
           "method": "predefined_region_with_margin",
           "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
-          "w": 0.62,
-          "x": 0.105299,
+          "w": 0.353504,
+          "x": 0.455726,
           "y": 0.0
         },
         {
-          "h": 0.236425,
+          "h": 0.208492,
           "id": "AOI2",
           "kind": "ellipse",
           "label": "operational region 2",
           "locked": false,
           "method": "predefined_region_with_margin",
           "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
-          "w": 0.225299,
-          "x": 0.028376,
-          "y": 0.406927
+          "w": 0.25094,
+          "x": 0.156581,
+          "y": 0.0
         },
         {
-          "h": 0.197318,
+          "h": 0.230838,
           "id": "AOI3",
           "kind": "ellipse",
           "label": "operational region 3",
           "locked": false,
           "method": "predefined_region_with_margin",
           "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
-          "w": 0.33641,
-          "x": 0.566838,
-          "y": 0.0
+          "w": 0.225299,
+          "x": 0.028376,
+          "y": 0.406927
         }
       ],
       "image_file": "042.jpg",
       "image_fingerprint": {
-        "mtime_ns": 1778617441086595000,
-        "sha256": "a90b26acf5775f78d7b163f52d218dd28b7d6c4ebb1a09b4959a7fef20603a40",
-        "size_bytes": 80681
+        "mtime_ns": 1779136435870713613,
+        "sha256": "d1e0b07faac6057d4a9a747a2b84af218e6ab8633d8ce66639f97761835dbc67",
+        "size_bytes": 473607
       }
     },
     "043.jpg": {
@@ -17987,9 +18553,9 @@
           "source": "predefined-region initialization leaves unassigned space outside AOIs"
         },
         {
-          "h": 0.440294,
+          "h": 0.550588,
           "id": "AOI1",
-          "kind": "ellipse",
+          "kind": "rect",
           "label": "operational region 1",
           "locked": false,
           "method": "predefined_region_with_margin",
@@ -17999,35 +18565,35 @@
           "y": 0.048235
         },
         {
-          "h": 0.352059,
+          "h": 0.425588,
           "id": "AOI2",
           "kind": "ellipse",
           "label": "operational region 2",
           "locked": false,
           "method": "predefined_region_with_margin",
           "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
-          "w": 0.247598,
+          "w": 0.242011,
           "x": 0.110838,
           "y": 0.511471
         },
         {
-          "h": 0.337353,
+          "h": 0.410882,
           "id": "AOI3",
           "kind": "ellipse",
           "label": "operational region 3",
           "locked": false,
           "method": "predefined_region_with_margin",
           "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
-          "w": 0.264358,
-          "x": 0.663911,
-          "y": 0.46
+          "w": 0.286704,
+          "x": 0.082905,
+          "y": 0.165882
         }
       ],
       "image_file": "044.jpg",
       "image_fingerprint": {
-        "mtime_ns": 1778618302495358000,
-        "sha256": "794720d76c7ebba54f8a117ec0154b95929641501daef38bd049d4c28e49df5f",
-        "size_bytes": 39477
+        "mtime_ns": 1779140249770934757,
+        "sha256": "1ce3dc98e5009c41083db239dd14a16bf5aee4dc92977504864d0eccc7f70db2",
+        "size_bytes": 187853
       }
     },
     "045.jpg": {
@@ -18941,23 +19507,47 @@
           "source": "predefined-region initialization leaves unassigned space outside AOIs"
         },
         {
-          "h": 0.5,
+          "h": 0.169385,
           "id": "AOI1",
-          "kind": "ellipse",
-          "label": "AOI 1",
+          "kind": "rect",
+          "label": "operational region 1",
           "locked": false,
-          "method": "manual",
-          "source": "",
-          "w": 0.969697,
-          "x": 0.012987,
-          "y": 0.271429
+          "method": "predefined_region_with_margin",
+          "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+          "w": 0.324898,
+          "x": 0.480408,
+          "y": 0.69743
+        },
+        {
+          "h": 0.169385,
+          "id": "AOI2",
+          "kind": "rect",
+          "label": "operational region 2",
+          "locked": false,
+          "method": "predefined_region_with_margin",
+          "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+          "w": 0.335102,
+          "x": 0.204898,
+          "y": 0.69743
+        },
+        {
+          "h": 0.58,
+          "id": "AOI3",
+          "kind": "rect",
+          "label": "operational region 3",
+          "locked": false,
+          "method": "predefined_region_with_margin",
+          "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
+          "w": 0.62,
+          "x": 0.06,
+          "y": 0.26
         }
       ],
       "image_file": "047.jpg",
       "image_fingerprint": {
-        "mtime_ns": 1777564481676483989,
-        "sha256": "e3d86572ad21589e9d9221c566765749a447c5eeef76fd51cfe963b3c10c6987",
-        "size_bytes": 11653
+        "mtime_ns": 1779140249776625059,
+        "sha256": "79cd2184cafaa42d156abe23e21864cf2e43a85246ef70db9f6ba93c8cd47295",
+        "size_bytes": 65845
       }
     },
     "048.jpg": {
@@ -20551,31 +21141,31 @@
           "source": "predefined-region initialization leaves unassigned space outside AOIs"
         },
         {
-          "h": 0.152626,
+          "h": 0.225251,
           "id": "AOI1",
           "kind": "rect",
           "label": "operational region 1",
           "locked": false,
           "method": "predefined_region_with_margin",
           "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
-          "w": 0.284082,
-          "x": 0.286531,
-          "y": 0.228156
+          "w": 0.559592,
+          "x": 0.440408,
+          "y": 0.774749
         },
         {
-          "h": 0.147039,
+          "h": 0.152626,
           "id": "AOI2",
-          "kind": "rect",
+          "kind": "ellipse",
           "label": "operational region 2",
           "locked": false,
           "method": "predefined_region_with_margin",
           "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
-          "w": 0.426939,
-          "x": 0.480408,
-          "y": 0.852961
+          "w": 0.273878,
+          "x": 0.286531,
+          "y": 0.228156
         },
         {
-          "h": 0.180559,
+          "h": 0.191732,
           "id": "AOI3",
           "kind": "ellipse",
           "label": "operational region 3",
@@ -20583,15 +21173,15 @@
           "method": "predefined_region_with_margin",
           "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
           "w": 0.314694,
-          "x": 0.0,
-          "y": 0.703017
+          "x": 0.082449,
+          "y": 0.69743
         }
       ],
       "image_file": "051.jpg",
       "image_fingerprint": {
-        "mtime_ns": 1778617451271759000,
-        "sha256": "2ef80de64f4000426741c9e77f5c8977dedbb166654b6dbfe2c6c5754a6c7b72",
-        "size_bytes": 43519
+        "mtime_ns": 1779136435871391820,
+        "sha256": "18ac43559fd4c34aa08f23b606ccdef078bf4d5d5dafe70167de99e45ccdc43e",
+        "size_bytes": 113661
       }
     },
     "052.jpg": {
@@ -23797,28 +24387,28 @@
           "source": "predefined-region initialization leaves unassigned space outside AOIs"
         },
         {
-          "h": 0.269944,
+          "h": 0.348156,
           "id": "AOI1",
           "kind": "ellipse",
           "label": "operational region 1",
           "locked": false,
           "method": "predefined_region_with_margin",
           "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
-          "w": 0.452881,
-          "x": 0.044746,
-          "y": 0.351061
+          "w": 0.351186,
+          "x": 0.409153,
+          "y": 0.250503
         },
         {
-          "h": 0.236425,
+          "h": 0.214078,
           "id": "AOI2",
-          "kind": "ellipse",
+          "kind": "rect",
           "label": "operational region 2",
           "locked": false,
           "method": "predefined_region_with_margin",
           "source": "pre-gaze coarse saliency region; region bounds expanded by margin 0.040 of image extent",
-          "w": 0.291864,
-          "x": 0.409153,
-          "y": 0.362235
+          "w": 0.410508,
+          "x": 0.087119,
+          "y": 0.401341
         },
         {
           "h": 0.12,
@@ -23835,9 +24425,9 @@
       ],
       "image_file": "057.jpg",
       "image_fingerprint": {
-        "mtime_ns": 1778617455737236000,
-        "sha256": "27d9212ab122daacc0ba341e19f291f21e8f55743a92227f19eb54c8d81915d3",
-        "size_bytes": 34538
+        "mtime_ns": 1779140249800100016,
+        "sha256": "6595ccce3665845d0571600838ec457945e0919ae451cd4906bc5fd25db51f8b",
+        "size_bytes": 155469
       }
     },
     "058.jpg": {
@@ -25943,9 +26533,9 @@
       ],
       "image_file": "065.jpg",
       "image_fingerprint": {
-        "mtime_ns": 1777563280119251966,
-        "sha256": "e7c67fe5d620467c0e338251e58546f2c892eab709c2fb24a50c3df02f567f26",
-        "size_bytes": 27839
+        "mtime_ns": 1779140249804746399,
+        "sha256": "f04896bc118fadc0a88d05647184d1174e63f02eb07c32251ed0ca8ffde78f6f",
+        "size_bytes": 85721
       }
     },
     "066.jpg": {

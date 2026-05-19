@@ -1142,7 +1142,13 @@ class ShapeEditor:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Create coarse, editable shape AOIs with one optional background/remainder AOI.")
-    parser.add_argument("command", choices=["init", "edit", "batch"], help="init AOIs, edit AOIs, or regenerate AOI outputs")
+    parser.add_argument(
+        "command",
+        nargs="?",
+        default="edit",
+        choices=["init", "edit", "batch"],
+        help="init AOIs, edit AOIs, or regenerate AOI outputs. Defaults to edit.",
+    )
     parser.add_argument(
         "--k",
         type=int,

@@ -2,8 +2,14 @@ from __future__ import annotations
 
 import argparse
 import math
+import os
+import tempfile
 from pathlib import Path
 
+os.environ.setdefault("MPLCONFIGDIR", str(Path(tempfile.gettempdir()) / "irii_matplotlib"))
+
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -13,6 +19,7 @@ from PIL import Image, ImageOps
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MAIN_IMAGE_DIR = PROJECT_ROOT / "input" / "main" / "images"
 PRACTICE_IMAGE_DIR = PROJECT_ROOT / "input" / "practice" / "images"
+REALRUN1_OUTPUT_ROOT = PROJECT_ROOT / "output" / "Realrun 1 output"
 MAX_IMAGE_WIDTH_HEIGHT_UNITS = 1.55
 MAX_IMAGE_HEIGHT_HEIGHT_UNITS = 0.82
 COMMON_SCREEN_HEIGHTS = (720, 768, 900, 1080, 1200, 1440, 2160)
@@ -107,26 +114,28 @@ def make_trial_overlay(
 
     axes[0].imshow(image)
     if len(mapped):
-        colors = mapped["sample_from_image_onset_s"]
+        image_x = mapped["image_x"].to_numpy(dtype=float)
+        image_y = mapped["image_y"].to_numpy(dtype=float)
+        colors = mapped["sample_from_image_onset_s"].to_numpy(dtype=float)
         axes[0].scatter(
-            mapped["image_x"],
-            mapped["image_y"],
+            image_x,
+            image_y,
             c=colors,
             cmap="viridis",
             s=16,
             alpha=0.62,
             edgecolors="none",
         )
-        axes[0].plot(mapped["image_x"], mapped["image_y"], color="white", alpha=0.22, linewidth=0.8)
+        axes[0].plot(image_x, image_y, color="white", alpha=0.22, linewidth=0.8)
     axes[0].set_title("Gaze over stimulus\ncolor = time since image onset")
     axes[0].set_xlim(0, image.width)
     axes[0].set_ylim(image.height, 0)
     axes[0].axis("off")
 
     axes[1].scatter(
-        mapped["gaze_x_pix"],
-        mapped["gaze_y_pix"],
-        c=mapped["sample_from_image_onset_s"],
+        mapped["gaze_x_pix"].to_numpy(dtype=float),
+        mapped["gaze_y_pix"].to_numpy(dtype=float),
+        c=mapped["sample_from_image_onset_s"].to_numpy(dtype=float),
         cmap="viridis",
         s=14,
         alpha=0.72,
@@ -214,32 +223,49 @@ def make_run_summary(summary: pd.DataFrame, output_path: Path, phase: str, run_d
     plt.close(fig)
 
 
-def latest_run_dir(base: Path) -> Path:
-    run_dirs = sorted(path for path in base.glob("participant_*/*") if path.is_dir())
+def latest_run_dir(base: Path, phase: str) -> Path:
+    run_dirs = sorted(
+        path
+        for path in base.glob("participant_*/*")
+        if path.is_dir() and (path / f"{phase}_gaze.csv").exists()
+    )
     if not run_dirs:
-        raise FileNotFoundError(f"No run folders found under {base}")
+        raise FileNotFoundError(f"No run folders with {phase}_gaze.csv found under {base}")
     return run_dirs[-1]
+
+
+def run_dirs_with_phase(base: Path, phase: str) -> list[Path]:
+    return sorted(
+        path
+        for path in base.glob("participant_*/*")
+        if path.is_dir() and (path / f"{phase}_gaze.csv").exists()
+    )
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Visualize study gaze CSV files over the presented images.")
     parser.add_argument("--run-dir", type=Path, default=None, help="Run folder containing main_gaze.csv and main_trials.csv")
-    parser.add_argument("--testrun-root", type=Path, default=PROJECT_ROOT / "output" / "Testrun Output")
+    parser.add_argument("--output-root", type=Path, default=PROJECT_ROOT / "output", help="Root containing real participant_* run folders")
+    parser.add_argument("--testrun-root", type=Path, default=PROJECT_ROOT / "output" / "Testrun Output", help="Root containing old Testrun Output folders")
+    parser.add_argument("--testrun", action="store_true", help="Use output/Testrun Output instead of real output/participant_* runs")
+    parser.add_argument("--realrun1", action="store_true", help="Use output/Realrun 1 output as the run root")
+    parser.add_argument("--all-runs", action="store_true", help="Visualize every run under the selected root that has the requested phase CSV")
     parser.add_argument("--phase", choices=["main", "practice"], default="main")
     parser.add_argument("--screen-height", type=int, default=None, help="Fullscreen height used during recording. Auto-inferred if omitted.")
     parser.add_argument("--output-dir", type=Path, default=None)
     return parser.parse_args()
 
 
-def main() -> None:
-    args = parse_args()
-    run_dir = args.run_dir or latest_run_dir(args.testrun_root)
+def visualize_run(args: argparse.Namespace, run_dir: Path, image_dir: Path) -> pd.DataFrame:
+    if args.output_dir is not None and args.all_runs:
+        output_dir = args.output_dir / run_dir.parent.name / run_dir.name
+    else:
+        output_dir = args.output_dir or run_dir / "gaze_visualization"
+
     gaze_csv = run_dir / f"{args.phase}_gaze.csv"
     if not gaze_csv.exists():
         raise FileNotFoundError(f"Missing gaze CSV: {gaze_csv}")
 
-    image_dir = MAIN_IMAGE_DIR if args.phase == "main" else PRACTICE_IMAGE_DIR
-    output_dir = args.output_dir or run_dir / "gaze_visualization"
     gaze = pd.read_csv(gaze_csv)
     if gaze.empty:
         raise ValueError(f"No gaze rows in {gaze_csv}")
@@ -288,6 +314,33 @@ def main() -> None:
     print(f"Screen height used for mapping: {screen_height_px}px")
     print(f"Output: {output_dir}")
     print(summary.to_string(index=False))
+    return summary
+
+
+def selected_root(args: argparse.Namespace) -> Path:
+    if args.realrun1:
+        return REALRUN1_OUTPUT_ROOT
+    if args.testrun:
+        return args.testrun_root
+    return args.output_root
+
+
+def main() -> None:
+    args = parse_args()
+    default_root = selected_root(args)
+    image_dir = MAIN_IMAGE_DIR if args.phase == "main" else PRACTICE_IMAGE_DIR
+
+    if args.all_runs:
+        run_dirs = run_dirs_with_phase(default_root, args.phase)
+        if not run_dirs:
+            raise FileNotFoundError(f"No runs with {args.phase}_gaze.csv found under {default_root}")
+        for run_dir in run_dirs:
+            visualize_run(args, run_dir, image_dir)
+        print(f"Visualized {len(run_dirs)} run(s) under {default_root}")
+        return
+
+    run_dir = args.run_dir or latest_run_dir(default_root, args.phase)
+    visualize_run(args, run_dir, image_dir)
 
 
 if __name__ == "__main__":
