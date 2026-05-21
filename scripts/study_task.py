@@ -523,7 +523,7 @@ def build_trial_sequence(base_trials: list[dict[str, str]], n_trials: int) -> li
 
 
 def choose_check_trials(trials: list[dict[str, str]], rate: float) -> set[int]:
-    """Randomly sample explanation checks; rate is an average, not a fixed interval."""
+    """Randomly sample explanation checks while keeping them spread through the run."""
     eligible_indices = [
         idx
         for idx, trial in enumerate(trials, start=1)
@@ -533,7 +533,32 @@ def choose_check_trials(trials: list[dict[str, str]], rate: float) -> set[int]:
         return set()
     n_checks = max(1, int(round(len(trials) * rate)))
     n_checks = min(n_checks, len(eligible_indices))
-    return set(random.sample(eligible_indices, n_checks))
+    if n_checks == 1:
+        return {random.choice(eligible_indices)}
+
+    eligible = set(eligible_indices)
+    selected: set[int] = set()
+    unfilled_bin_centers: list[float] = []
+    total_trials = len(trials)
+
+    for bin_index in range(n_checks):
+        start = int(math.floor(bin_index * total_trials / n_checks)) + 1
+        end = int(math.floor((bin_index + 1) * total_trials / n_checks))
+        candidates = [idx for idx in range(start, end + 1) if idx in eligible]
+        if candidates:
+            selected.add(random.choice(candidates))
+        else:
+            unfilled_bin_centers.append((start + end) / 2)
+
+    for center in unfilled_bin_centers:
+        remaining = [idx for idx in eligible_indices if idx not in selected]
+        if not remaining:
+            break
+        nearest_distance = min(abs(idx - center) for idx in remaining)
+        nearest = [idx for idx in remaining if abs(idx - center) == nearest_distance]
+        selected.add(random.choice(nearest))
+
+    return selected
 
 
 def append_rows(csv_path: Path, rows: list[dict[str, str | int | float]], fieldnames: list[str]) -> None:
@@ -2151,6 +2176,7 @@ def main() -> None:
             "counterbalance_offset": counterbalance_offset,
             "check_rate": CHECK_RATE,
             "condition_aware_mismatch_checks": True,
+            "mismatch_check_sampling": "stratified_one_per_run_segment",
             "main_check_trials": ",".join(str(idx) for idx in sorted(main_check_trials)),
             "fixation_duration_s": FIXATION_DURATION_S,
         },

@@ -1,7 +1,8 @@
 {
   "aoi_count_distribution": {
+    "1": 1,
     "3": 1,
-    "4": 42,
+    "4": 41,
     "5": 19,
     "6": 16,
     "7": 2
@@ -16,7 +17,7 @@
     "manual": 159,
     "manual_adjusted_limited_radius": 39,
     "non_aoi": 80,
-    "predefined_region_with_margin": 98
+    "predefined_region_with_margin": 95
   },
   "non_aoi_rule": "Pixels outside all foreground operational regions are assigned to non-AOI / background.",
   "overlap_rule": "Overlapping predefined regions are assigned by nearest region center; manual polygon AOIs use layer order.",

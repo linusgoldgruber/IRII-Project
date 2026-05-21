@@ -25,6 +25,8 @@ TEXT_COLUMNS = [
     ("condition_incongruent_en", "EN incongruent"),
 ]
 
+RESAMPLE_LANCZOS = getattr(getattr(Image, "Resampling", Image), "LANCZOS")
+
 
 def load_rows() -> tuple[list[dict[str, str]], list[str]]:
     if not STIMULI_CSV.exists():
@@ -189,7 +191,7 @@ class PromptEditor:
         with Image.open(image_path) as image:
             original_size = image.size
             display = image.copy()
-        display.thumbnail((760, 620), Image.Resampling.LANCZOS)
+        display.thumbnail((760, 620), RESAMPLE_LANCZOS)
         self.photo = ImageTk.PhotoImage(display)
         self.image_label.config(image=self.photo, text="")
         self.image_meta_var.set(
